@@ -1,0 +1,54 @@
+/**
+ * Password handling. Aligned to NIST SP 800-63B:
+ *  - 12-character minimum
+ *  - No composition rules
+ *  - Checked against HIBP (Have I Been Pwned) on creation and reset
+ *  - No forced rotation
+ *  - Argon2id for storage
+ */
+
+import argon2 from "argon2";
+import { createHash } from "node:crypto";
+
+export const PASSWORD_MIN_LENGTH = 12;
+
+export async function hashPassword(plain: string): Promise<string> {
+  if (plain.length < PASSWORD_MIN_LENGTH) {
+    throw new Error("password too short");
+  }
+  return argon2.hash(plain, { type: argon2.argon2id });
+}
+
+export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
+  try {
+    return await argon2.verify(hash, plain);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * HIBP "k-anonymity" range API — never sends the full hash.
+ * Returns true if the password has been seen in a known breach.
+ */
+export async function checkHibpBreach(plain: string): Promise<boolean> {
+  const sha = createHash("sha1").update(plain).digest("hex").toUpperCase();
+  const prefix = sha.slice(0, 5);
+  const suffix = sha.slice(5);
+  const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+    headers: { "Add-Padding": "true" },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) {
+    // Fail-closed only in production; fail-open in development to avoid
+    // local environment friction. The check is defense-in-depth, not the
+    // sole gate.
+    return process.env.NODE_ENV === "production";
+  }
+  const text = await res.text();
+  for (const line of text.split("\n")) {
+    const [hashSuffix] = line.trim().split(":");
+    if (hashSuffix === suffix) return true;
+  }
+  return false;
+}

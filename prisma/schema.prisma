@@ -1,0 +1,736 @@
+// Sentinel — Veteran First-Year Transition Support Platform
+//
+// Multi-tenant SaaS schema. Every tenant-scoped table carries `organizationId`.
+// Tenant isolation is enforced via Postgres Row-Level Security (see migrations).
+//
+// Append-only by default: CheckIn, Message, ConsentRecord, AuditLog, AuthEvent
+// are immutable once written. Edits are new records that supersede prior ones.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+// =============================================================================
+// ORGANIZATION (TENANT ROOT)
+// =============================================================================
+
+enum OrgStatus {
+  PROVISIONING
+  TEST_MODE
+  ACTIVE
+  SUSPENDED
+  DEPROVISIONING
+  DEPROVISIONED
+}
+
+enum MfaEnforcementLevel {
+  REQUIRED_ALL
+  REQUIRED_STAFF
+  OPTIONAL
+}
+
+model Organization {
+  id                            String              @id @default(uuid()) @db.Uuid
+  slug                          String              @unique
+  name                          String
+  primaryContactEmail           String
+  organizationType              String
+  branding                      Json                @default("{}")
+  subdomain                     String?             @unique
+  status                        OrgStatus           @default(PROVISIONING)
+  testModeUntil                 DateTime?
+  createdAt                     DateTime            @default(now())
+  activatedAt                   DateTime?
+  suspendedAt                   DateTime?
+  deprovisionedAt               DateTime?
+  defaultNotificationPreferences Json               @default("{}")
+  mfaEnforcementLevel           MfaEnforcementLevel @default(REQUIRED_STAFF)
+  featureFlags                  Json                @default("{}")
+  complianceDocuments           Json                @default("[]")
+  dataRetentionPolicy           Json                @default("{}")
+
+  users               User[]
+  invitations         Invitation[]
+  cohorts             Cohort[]
+  veteranProfiles     VeteranProfile[]
+  checkIns            CheckIn[]
+  flags               Flag[]
+  contacts            Contact[]
+  messageThreads      MessageThread[]
+  messages            Message[]
+  escalations         ClinicalEscalation[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  consentRecords      ConsentRecord[]
+  questionOverrides   CheckInQuestion[]
+  caseloadReassignments CaseloadReassignment[]
+  oooSchedules        CoordinatorOOO[]
+  stateTransitions    OrganizationStateTransition[]
+
+  @@index([status])
+}
+
+model OrganizationStateTransition {
+  id              String    @id @default(uuid()) @db.Uuid
+  organizationId  String    @db.Uuid
+  fromState       OrgStatus
+  toState         OrgStatus
+  transitionedById String?  @db.Uuid
+  transitionedAt  DateTime  @default(now())
+  reason          String?
+  metadata        Json      @default("{}")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, transitionedAt])
+}
+
+// =============================================================================
+// USER & ACCOUNT LIFECYCLE
+// =============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  VETERAN
+  COORDINATOR
+  CLINICAL_LEAD
+  PROGRAM_MANAGER
+}
+
+enum AccountState {
+  INVITED
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  LOCKED
+  DEACTIVATED
+  DEPROVISIONED
+}
+
+model User {
+  id                       String       @id @default(uuid()) @db.Uuid
+  organizationId           String?      @db.Uuid // null only for SUPER_ADMIN
+  email                    String
+  emailVerifiedAt          DateTime?
+  role                     UserRole
+  isOrgAdmin               Boolean      @default(false)
+  accountState             AccountState @default(INVITED)
+  accountStateChangedAt    DateTime     @default(now())
+  accountStateChangedById  String?      @db.Uuid
+  accountStateReason       String?
+  displayName              String?
+  avatarUrl                String?
+  createdAt                DateTime     @default(now())
+  lastActiveAt             DateTime?
+  mfaEnabled               Boolean      @default(false)
+  mfaMethods               Json         @default("[]")
+  consentVersion           String?
+  consentSignedAt          DateTime?
+  failedLoginAttempts      Int          @default(0)
+  lockedUntil              DateTime?
+  deactivatedAt            DateTime?
+  deactivatedById          String?      @db.Uuid
+  deactivationReason       String?
+  reactivationDeadline     DateTime?
+
+  organization        Organization?         @relation(fields: [organizationId], references: [id])
+  veteranProfile      VeteranProfile?
+  password            PasswordCredential?
+  sessions            Session[]
+  authEvents          AuthEvent[]
+  recoveryCodes       MfaRecoveryCode[]
+  invitationsSent     Invitation[]          @relation("InvitedBy")
+  notificationPrefs   NotificationPreferences?
+  notifications       Notification[]
+  consentRecords      ConsentRecord[]
+  contactsAsCoord     Contact[]             @relation("ContactCoordinator")
+  threadsAsCoord      MessageThread[]       @relation("ThreadCoordinator")
+  threadsAsVeteran    MessageThread[]       @relation("ThreadVeteran")
+  messagesSent        Message[]             @relation("MessageSender")
+  escalationsRaised   ClinicalEscalation[]  @relation("EscalatingCoordinator")
+  escalationsLed      ClinicalEscalation[]  @relation("ClinicalLead")
+  cohortsManaged      Cohort[]              @relation("CohortPM")
+  oooSchedules        CoordinatorOOO[]      @relation("OOOCoordinator")
+  oooCoverage         CoordinatorOOO[]      @relation("OOOCoverage")
+  reassignmentsFrom   CaseloadReassignment[] @relation("ReassignFrom")
+  reassignmentsTo     CaseloadReassignment[] @relation("ReassignTo")
+  reassignmentsInit   CaseloadReassignment[] @relation("ReassignInit")
+  flagsAcked          Flag[]                @relation("FlagAck")
+  checkInsReviewed    CheckIn[]             @relation("CheckInReviewer")
+  veteransAsCoord     VeteranProfile[]      @relation("VeteranCoordinator")
+
+  @@unique([organizationId, email])
+  @@index([organizationId, role])
+  @@index([accountState])
+}
+
+model PasswordCredential {
+  userId             String    @id @db.Uuid
+  passwordHash       String
+  updatedAt          DateTime  @updatedAt
+  breachCheckedAt    DateTime?
+  breachCheckResult  Boolean?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @db.Uuid
+  tokenHash         String    @unique
+  createdAt         DateTime  @default(now())
+  lastActiveAt      DateTime  @default(now())
+  expiresAt         DateTime
+  ipAddress         String?
+  userAgent         String?
+  deviceFingerprint String?
+  revokedAt         DateTime?
+  revokedReason     String?
+  mfaCompletedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model MfaRecoveryCode {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  codeHash    String
+  usedAt      DateTime?
+  generatedAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum AuthEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
+  MFA_SETUP
+  MFA_CHALLENGE_SUCCESS
+  MFA_CHALLENGE_FAILURE
+  EMAIL_CHANGE
+  NEW_DEVICE_LOGIN
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  SESSION_REVOKED
+  INVITATION_ACCEPTED
+}
+
+model AuthEvent {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String?       @db.Uuid
+  eventType         AuthEventType
+  ipAddress         String?
+  userAgent         String?
+  deviceFingerprint String?
+  timestamp         DateTime      @default(now())
+  metadata          Json          @default("{}")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, timestamp])
+  @@index([eventType, timestamp])
+}
+
+// =============================================================================
+// INVITATIONS
+// =============================================================================
+
+enum InvitationStatus {
+  SENT
+  VIEWED
+  ACCEPTED
+  EXPIRED
+  REVOKED
+  BOUNCED
+  RESENT
+}
+
+model Invitation {
+  id                       String           @id @default(uuid()) @db.Uuid
+  organizationId           String           @db.Uuid
+  email                    String
+  role                     UserRole
+  isOrgAdmin               Boolean          @default(false)
+  invitedById              String           @db.Uuid
+  tokenHash                String           @unique
+  status                   InvitationStatus @default(SENT)
+  sentAt                   DateTime         @default(now())
+  viewedAt                 DateTime?
+  acceptedAt               DateTime?
+  expiresAt                DateTime
+  supersededByInvitationId String?          @db.Uuid
+  inviterMessage           String?
+  metadata                 Json             @default("{}")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invitedBy    User         @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([organizationId, status])
+  @@index([email])
+}
+
+// =============================================================================
+// CASELOAD REASSIGNMENT
+// =============================================================================
+
+model CaseloadReassignment {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId     String    @db.Uuid
+  fromCoordinatorId  String    @db.Uuid
+  toCoordinatorId    String    @db.Uuid
+  reason             String
+  veteranIds         String[]  @db.Uuid
+  initiatedById      String    @db.Uuid
+  initiatedAt        DateTime  @default(now())
+  completedAt        DateTime?
+  veteransNotified   Boolean   @default(false)
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  fromCoordinator User         @relation("ReassignFrom", fields: [fromCoordinatorId], references: [id])
+  toCoordinator   User         @relation("ReassignTo",   fields: [toCoordinatorId],   references: [id])
+  initiatedBy     User         @relation("ReassignInit", fields: [initiatedById],     references: [id])
+
+  @@index([organizationId])
+}
+
+// =============================================================================
+// VETERANS, COHORTS
+// =============================================================================
+
+enum VeteranStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  WITHDRAWN
+}
+
+model VeteranProfile {
+  userId                    String        @id @db.Uuid
+  organizationId            String        @db.Uuid
+  cohortId                  String        @db.Uuid
+  separationDate            DateTime
+  branchOfService           String
+  yearsOfService            Int?
+  assignedCoordinatorId     String?       @db.Uuid
+  emergencyContactName      String?
+  emergencyContactPhone     String?
+  emergencyContactConsent   Boolean       @default(false)
+  localVAFacility           String?
+  localCrisisResources      Json          @default("[]")
+  programStartDate          DateTime
+  programEndDate            DateTime
+  status                    VeteranStatus @default(ACTIVE)
+  timezone                  String        @default("America/New_York")
+  checkInDayOfWeek          Int           @default(0) // 0 = Sunday
+  checkInLocalTime          String        @default("18:00")
+
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  cohort              Cohort       @relation(fields: [cohortId], references: [id])
+  assignedCoordinator User?        @relation("VeteranCoordinator", fields: [assignedCoordinatorId], references: [id])
+
+  @@index([organizationId, cohortId])
+  @@index([assignedCoordinatorId])
+  @@index([status])
+}
+
+enum CohortStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Cohort {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @db.Uuid
+  name             String
+  description      String?
+  startDate        DateTime
+  endDate          DateTime
+  programManagerId String?      @db.Uuid
+  status           CohortStatus @default(PLANNED)
+  createdAt        DateTime     @default(now())
+
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  programManager User?            @relation("CohortPM", fields: [programManagerId], references: [id])
+  veterans       VeteranProfile[]
+
+  @@index([organizationId, status])
+}
+
+// =============================================================================
+// CHECK-INS, QUESTIONS, DOMAINS
+// =============================================================================
+
+enum DomainCode {
+  SLEEP
+  MOOD
+  CONNECTION
+  PURPOSE
+  FINANCE
+  SUBSTANCE
+  PAIN
+  RELATIONSHIP
+  HOUSING
+}
+
+enum ResponseType {
+  LIKERT_5
+  YES_NO
+  HOURS
+  OPEN_TEXT
+}
+
+model Domain {
+  code                     DomainCode @id
+  displayName              String
+  description              String
+  currentInstrumentVersion String
+
+  questions CheckInQuestion[]
+}
+
+model CheckInQuestion {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String?      @db.Uuid // null = canonical platform question
+  domainCode     DomainCode
+  version        Int          @default(1)
+  questionText   String
+  responseType   ResponseType
+  weight         Float        @default(1.0)
+  rotationGroup  Int          @default(1)
+  supersedesId   String?      @db.Uuid
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  domain       Domain        @relation(fields: [domainCode], references: [code])
+
+  @@index([organizationId, domainCode, active])
+}
+
+enum RiskLevel {
+  GREEN
+  YELLOW
+  ORANGE
+  RED
+}
+
+model CheckIn {
+  id                     String     @id @default(uuid()) @db.Uuid
+  organizationId         String     @db.Uuid
+  veteranId              String     @db.Uuid
+  weekNumber             Int
+  submittedAt            DateTime   @default(now())
+  responses              Json       // [{ questionId, domainCode, value, skipped }]
+  openEndedResponse      String?    // encrypted at app layer
+  aiAnalysis             Json?      // { promptVersion, model, markers[], confidence, recommendedSeverity }
+  riskScore              Float?
+  riskLevel              RiskLevel?
+  reviewedByCoordinatorId String?   @db.Uuid
+  reviewedAt             DateTime?
+  engineVersion          String     @default("v1.0.0")
+  // Immutable after submission. Corrections are new check-ins flagged via metadata.
+  correctsCheckInId      String?    @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  reviewer     User?        @relation("CheckInReviewer", fields: [reviewedByCoordinatorId], references: [id])
+  flags        Flag[]
+
+  @@unique([veteranId, weekNumber, submittedAt])
+  @@index([organizationId, veteranId, submittedAt])
+  @@index([riskLevel])
+}
+
+// =============================================================================
+// FLAGS, CONTACTS, ESCALATIONS
+// =============================================================================
+
+enum FlagType {
+  TRAJECTORY_SHIFT
+  COMPOUNDING_RISK
+  LANGUAGE_MARKER
+  MISSED_CHECKIN
+  EXPLICIT_RISK
+}
+
+model Flag {
+  id                       String    @id @default(uuid()) @db.Uuid
+  organizationId           String    @db.Uuid
+  veteranId                String    @db.Uuid
+  checkInId                String?   @db.Uuid
+  flagType                 FlagType
+  severity                 RiskLevel
+  explanation              String
+  domainsInvolved          DomainCode[]
+  createdAt                DateTime  @default(now())
+  acknowledgedByCoordinatorId String? @db.Uuid
+  acknowledgedAt           DateTime?
+  resolution               Json?
+  resolvedAt               DateTime?
+  severityOverrideById     String?   @db.Uuid
+  severityOverrideReason   String?
+
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  checkIn           CheckIn?     @relation(fields: [checkInId], references: [id])
+  acknowledgedBy    User?        @relation("FlagAck", fields: [acknowledgedByCoordinatorId], references: [id])
+
+  @@index([organizationId, veteranId, createdAt])
+  @@index([severity, acknowledgedAt])
+}
+
+enum ContactType {
+  CHECK_IN_REVIEW
+  OUTREACH_CALL
+  TEXT
+  EMAIL
+  IN_PERSON
+  CRISIS
+}
+
+enum ContactDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model Contact {
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @db.Uuid
+  veteranId       String           @db.Uuid
+  coordinatorId   String           @db.Uuid
+  contactType     ContactType
+  direction       ContactDirection
+  summary         String           // encrypted at app layer
+  followUpRequired Boolean         @default(false)
+  followUpBy      DateTime?
+  createdAt       DateTime         @default(now())
+  editableUntil   DateTime         // 24h from creation, set at insert
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  coordinator  User         @relation("ContactCoordinator", fields: [coordinatorId], references: [id])
+
+  @@index([organizationId, veteranId, createdAt])
+}
+
+enum EscalationStatus {
+  PENDING
+  IN_REVIEW
+  ACTIONED
+  CLOSED
+}
+
+model ClinicalEscalation {
+  id                       String           @id @default(uuid()) @db.Uuid
+  organizationId           String           @db.Uuid
+  veteranId                String           @db.Uuid
+  escalatingCoordinatorId  String           @db.Uuid
+  clinicalLeadId           String?          @db.Uuid
+  triggeredByFlagId        String?          @db.Uuid
+  consultNotes             String?          // encrypted
+  recommendedAction        String?
+  status                   EscalationStatus @default(PENDING)
+  createdAt                DateTime         @default(now())
+  closedAt                 DateTime?
+
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  escalatingCoordinator User       @relation("EscalatingCoordinator", fields: [escalatingCoordinatorId], references: [id])
+  clinicalLead        User?        @relation("ClinicalLead", fields: [clinicalLeadId], references: [id])
+
+  @@index([organizationId, status])
+}
+
+// =============================================================================
+// MESSAGING
+// =============================================================================
+
+enum ThreadStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model MessageThread {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  veteranId      String       @db.Uuid
+  coordinatorId  String       @db.Uuid
+  createdAt      DateTime     @default(now())
+  lastMessageAt  DateTime     @default(now())
+  status         ThreadStatus @default(ACTIVE)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  veteran      User         @relation("ThreadVeteran",     fields: [veteranId],     references: [id])
+  coordinator  User         @relation("ThreadCoordinator", fields: [coordinatorId], references: [id])
+  messages     Message[]
+
+  @@unique([veteranId, coordinatorId])
+  @@index([organizationId])
+}
+
+enum SenderRole {
+  VETERAN
+  COORDINATOR
+}
+
+model Message {
+  id               String     @id @default(uuid()) @db.Uuid
+  organizationId   String     @db.Uuid
+  threadId         String     @db.Uuid
+  senderId         String     @db.Uuid
+  senderRole       SenderRole
+  bodyEncrypted    String
+  sentAt           DateTime   @default(now())
+  readAt           DateTime?
+  aiAssistedDraft  Boolean    @default(false)
+  aiPromptVersion  String?
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  thread       MessageThread @relation(fields: [threadId], references: [id])
+  sender       User          @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@index([threadId, sentAt])
+}
+
+model CoordinatorOOO {
+  id                    String   @id @default(uuid()) @db.Uuid
+  organizationId        String   @db.Uuid
+  coordinatorId         String   @db.Uuid
+  startAt               DateTime
+  endAt                 DateTime
+  coverageCoordinatorId String?  @db.Uuid
+  autoReplyMessage      String
+
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  coordinator         User         @relation("OOOCoordinator", fields: [coordinatorId], references: [id])
+  coverageCoordinator User?        @relation("OOOCoverage",    fields: [coverageCoordinatorId], references: [id])
+
+  @@index([organizationId, coordinatorId])
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+enum NotificationCategory {
+  WEEKLY_CHECKIN_INVITE
+  MISSED_CHECKIN_NUDGE
+  NEW_MESSAGE
+  COORDINATOR_OUTREACH
+  RESOURCE_HIGHLIGHT
+  PROGRAM_MILESTONE
+  ACCOUNT_SECURITY
+  RED_FLAG
+  ORANGE_FLAG
+  YELLOW_FLAG
+  CASELOAD_DIGEST
+  NEW_VETERAN_ASSIGNED
+  NEW_ESCALATION
+  CLINICAL_DAILY_DIGEST
+  COHORT_SUMMARY
+  CASELOAD_HEALTH_ALERT
+  INVITATION_ACCEPTED_NOTICE
+  BILLING_NOTICE
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS_FUTURE
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
+  SUPPRESSED
+}
+
+model Notification {
+  id                  String               @id @default(uuid()) @db.Uuid
+  organizationId      String?              @db.Uuid
+  recipientUserId     String               @db.Uuid
+  category            NotificationCategory
+  channel             NotificationChannel  @default(EMAIL)
+  subject             String
+  bodyTemplateId      String
+  renderedBodyHash    String?
+  status              NotificationStatus   @default(QUEUED)
+  queuedAt            DateTime             @default(now())
+  sentAt              DateTime?
+  deliveredAt         DateTime?
+  failedAt            DateTime?
+  failureReason       String?
+  relatedResourceType String?
+  relatedResourceId   String?
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  recipient    User          @relation(fields: [recipientUserId], references: [id])
+
+  @@index([recipientUserId, status])
+  @@index([organizationId, queuedAt])
+}
+
+model NotificationPreferences {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @db.Uuid
+  preferences Json     @default("{}")
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =============================================================================
+// AUDIT, CONSENT
+// =============================================================================
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  actorId        String?  @db.Uuid
+  actorRole      String?
+  action         String
+  resourceType   String
+  resourceId     String?
+  timestamp      DateTime @default(now())
+  ipAddress      String?
+  userAgent      String?
+  reason         String?
+  metadata       Json     @default("{}")
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, timestamp])
+  @@index([actorId, timestamp])
+  @@index([resourceType, resourceId])
+}
+
+model ConsentRecord {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @db.Uuid
+  organizationId       String   @db.Uuid
+  consentVersion       String
+  signedAt             DateTime @default(now())
+  ipAddress            String?
+  consentDocumentHash  String
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([userId, signedAt])
+  @@index([organizationId, consentVersion])
+}
