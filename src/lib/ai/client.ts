@@ -84,7 +84,7 @@ export async function analyzeOpenEndedResponse(
   } catch {
     // Try to find a JSON block
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("AI returned non-JSON output");
+    if (!match || !match[0]) throw new Error("AI returned non-JSON output");
     parsed = JSON.parse(match[0]);
   }
 

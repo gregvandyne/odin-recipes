@@ -4,10 +4,10 @@
  *  - No composition rules
  *  - Checked against HIBP (Have I Been Pwned) on creation and reset
  *  - No forced rotation
- *  - Argon2id for storage
+ *  - Argon2id for storage (via @node-rs/argon2 — pure Rust, prebuilt for Vercel)
  */
 
-import argon2 from "argon2";
+import { hash as argonHash, verify as argonVerify, Algorithm } from "@node-rs/argon2";
 import { createHash } from "node:crypto";
 
 export const PASSWORD_MIN_LENGTH = 12;
@@ -16,12 +16,12 @@ export async function hashPassword(plain: string): Promise<string> {
   if (plain.length < PASSWORD_MIN_LENGTH) {
     throw new Error("password too short");
   }
-  return argon2.hash(plain, { type: argon2.argon2id });
+  return argonHash(plain, { algorithm: Algorithm.Argon2id });
 }
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
   try {
-    return await argon2.verify(hash, plain);
+    return await argonVerify(hash, plain);
   } catch {
     return false;
   }
