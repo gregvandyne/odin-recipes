@@ -154,3 +154,32 @@ Calm over clinical. Trust through restraint. One primary action per screen in th
 ## Contact
 
 In crisis? Call **988**, press **1** — Veterans Crisis Line, available 24/7.
+
+## Screenshots
+
+Captured directly from the running app. Veteran-facing surfaces are at iPhone-13 width (390px); staff surfaces at 1280px.
+
+### Landing
+![Landing](docs/screenshots/01-landing.png)
+
+### Veteran app
+| Home | Check-in (sleep hours) | Done |
+|---|---|---|
+| ![Veteran home](docs/screenshots/02-veteran-home.png) | ![Check-in](docs/screenshots/03-veteran-check-in.png) | ![Done](docs/screenshots/04-veteran-check-in-done.png) |
+
+| Trends | Onboarding | Consent |
+|---|---|---|
+| ![Trends](docs/screenshots/05-veteran-trends.png) | ![Onboarding](docs/screenshots/06-veteran-onboarding.png) | ![Consent](docs/screenshots/07-veteran-consent.png) |
+
+### Coordinator
+**Triage queue** — leftmost color band signals severity, RED → ORANGE → YELLOW. Queue ordering enforces the principle that critical state lives in the leftmost column.
+![Triage queue](docs/screenshots/08-coordinator-queue.png)
+
+**Per-veteran timeline** — domain sparklines stacked, flag explanation at top, action panel and triage protocol on the right.
+![Per-veteran timeline](docs/screenshots/09-coordinator-veteran.png)
+
+### Clinical Lead
+![Clinical escalations](docs/screenshots/10-clinical-escalations.png)
+
+### Program Manager
+![Cohort dashboard](docs/screenshots/11-program-manager-cohort.png)
