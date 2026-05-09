@@ -165,6 +165,7 @@ model User {
   flagsAcked          Flag[]                @relation("FlagAck")
   checkInsReviewed    CheckIn[]             @relation("CheckInReviewer")
   veteransAsCoord     VeteranProfile[]      @relation("VeteranCoordinator")
+  pushSubscriptions   PushSubscription[]
 
   @@unique([organizationId, email])
   @@index([organizationId, role])
@@ -692,6 +693,23 @@ model NotificationPreferences {
   updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  userId         String   @db.Uuid
+  endpoint       String   @unique
+  p256dh         String
+  auth           String
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  revokedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
 }
 
 // =============================================================================

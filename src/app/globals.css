@@ -4,12 +4,18 @@
 
 /**
  * Sentinel design tokens.
+ *
  * Color signals state, not decoration. Typography is restrained.
- * Honor prefers-reduced-motion. Honor dark mode.
+ * All semantic tokens use CSS variables so dark mode swaps cleanly.
+ *
+ * Light: warm off-white veteran canvas; true neutral staff canvas.
+ * Dark : deep neutral with slightly elevated card surface; preserves the
+ *        muted, calm character — a 2am-friendly palette.
  */
 
 @layer base {
   :root {
+    /* shadcn-aligned semantic tokens */
     --background: 0 0% 98%;
     --foreground: 0 0% 10%;
     --muted: 0 0% 95%;
@@ -20,6 +26,17 @@
     --destructive-foreground: 0 0% 100%;
     --ring: 210 30% 36%;
     --input: 0 0% 89%;
+
+    /* Sentinel surfaces (CSS-var driven so dark mode swaps without JS) */
+    --canvas-veteran: #FAFAF7;
+    --canvas-staff:   #F8F9FA;
+    --canvas-card:    #FFFFFF;
+    --canvas-banded:  #F4F4F2;
+    --ink-primary:    #1A1A1A;
+    --ink-secondary:  #4A4A4A;
+    --ink-tertiary:   #737373;
+    --border-color:   #E5E5E5;
+    --border-strong:  #D4D4D4;
   }
 
   .dark {
@@ -33,17 +50,20 @@
     --destructive-foreground: 0 0% 100%;
     --ring: 210 30% 56%;
     --input: 0 0% 18%;
+
+    --canvas-veteran: #141414;
+    --canvas-staff:   #111213;
+    --canvas-card:    #1C1C1C;
+    --canvas-banded:  #232323;
+    --ink-primary:    #F2F2F2;
+    --ink-secondary:  #B0B0B0;
+    --ink-tertiary:   #828282;
+    --border-color:   #2C2C2C;
+    --border-strong:  #3A3A3A;
   }
 
-  html {
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
-
-  body {
-    @apply bg-background text-foreground font-sans;
-    font-feature-settings: "ss01", "cv11";
-  }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { @apply bg-background text-foreground font-sans; font-feature-settings: "ss01", "cv11"; }
 
   /* Focus ring — high contrast, visible on every interactive element. */
   *:focus-visible {
@@ -52,11 +72,12 @@
     border-radius: 4px;
   }
 
-  /* Honor reduced motion. */
+  ::selection {
+    background-color: rgba(59, 91, 126, 0.2);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -65,7 +86,21 @@
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+  .text-pretty  { text-wrap: pretty; }
+
+  /* Subtle pulse — used ONLY on RED risk states. Honors reduced-motion. */
+  .pulse-red::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 0 rgba(168, 46, 46, 0.6);
+    animation: pulseRed 2.4s ease-out infinite;
+  }
+  @keyframes pulseRed {
+    0%   { box-shadow: 0 0 0 0 rgba(168, 46, 46, 0.45); }
+    70%  { box-shadow: 0 0 0 8px rgba(168, 46, 46, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(168, 46, 46, 0); }
   }
 }

@@ -15,18 +15,18 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Surfaces
+        // Surfaces (CSS-var driven for dark-mode swap)
         canvas: {
-          veteran: "#FAFAF7",
-          staff: "#F8F9FA",
-          card: "#FFFFFF",
-          banded: "#F4F4F2",
+          veteran: "var(--canvas-veteran)",
+          staff:   "var(--canvas-staff)",
+          card:    "var(--canvas-card)",
+          banded:  "var(--canvas-banded)",
         },
         // Text
         ink: {
-          primary: "#1A1A1A",
-          secondary: "#4A4A4A",
-          tertiary: "#737373",
+          primary:   "var(--ink-primary)",
+          secondary: "var(--ink-secondary)",
+          tertiary:  "var(--ink-tertiary)",
         },
         // Primary accent — muted slate-blue, steadiness without medical-clinical connotations
         primary: {
@@ -47,8 +47,8 @@ const config: Config = {
           foreground: "#FFFFFF",
         },
         border: {
-          DEFAULT: "#E5E5E5",
-          strong: "#D4D4D4",
+          DEFAULT: "var(--border-color)",
+          strong:  "var(--border-strong)",
         },
         // shadcn-aligned semantic tokens (mapped to our palette)
         background: "hsl(var(--background))",

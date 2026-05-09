@@ -157,29 +157,41 @@ In crisis? Call **988**, press **1** — Veterans Crisis Line, available 24/7.
 
 ## Screenshots
 
-Captured directly from the running app. Veteran-facing surfaces are at iPhone-13 width (390px); staff surfaces at 1280px.
+Captured directly from the running app via `node scripts/screenshot.mjs`. Veteran surfaces at iPhone-13 width (390px); staff at 1280px. Several surfaces shown in both light and dark mode.
 
 ### Landing
-![Landing](docs/screenshots/01-landing.png)
+| Light | Dark |
+|---|---|
+| ![Landing light](docs/screenshots/01-landing.png) | ![Landing dark](docs/screenshots/01-landing-dark.png) |
 
 ### Veteran app
-| Home | Check-in (sleep hours) | Done |
+| Home (light) | Home (dark) | Check-in |
 |---|---|---|
-| ![Veteran home](docs/screenshots/02-veteran-home.png) | ![Check-in](docs/screenshots/03-veteran-check-in.png) | ![Done](docs/screenshots/04-veteran-check-in-done.png) |
+| ![Home](docs/screenshots/02-veteran-home.png) | ![Home dark](docs/screenshots/02-veteran-home-dark.png) | ![Check-in](docs/screenshots/03-veteran-check-in.png) |
 
-| Trends | Onboarding | Consent |
+| Done | Trends | Onboarding |
 |---|---|---|
-| ![Trends](docs/screenshots/05-veteran-trends.png) | ![Onboarding](docs/screenshots/06-veteran-onboarding.png) | ![Consent](docs/screenshots/07-veteran-consent.png) |
+| ![Done](docs/screenshots/04-veteran-check-in-done.png) | ![Trends](docs/screenshots/05-veteran-trends.png) | ![Onboarding](docs/screenshots/06-veteran-onboarding.png) |
+
+| Consent | Messages (light) | Messages (dark) |
+|---|---|---|
+| ![Consent](docs/screenshots/07-veteran-consent.png) | ![Veteran msgs](docs/screenshots/08-veteran-messages.png) | ![Veteran msgs dark](docs/screenshots/08-veteran-messages-dark.png) |
 
 ### Coordinator
-**Triage queue** — leftmost color band signals severity, RED → ORANGE → YELLOW. Queue ordering enforces the principle that critical state lives in the leftmost column.
-![Triage queue](docs/screenshots/08-coordinator-queue.png)
+**Triage queue** — sidebar nav, command palette (⌘K), keyboard-first.
+![Triage queue](docs/screenshots/09-coordinator-queue.png)
+![Triage queue dark](docs/screenshots/09-coordinator-queue-dark.png)
 
-**Per-veteran timeline** — domain sparklines stacked, flag explanation at top, action panel and triage protocol on the right.
-![Per-veteran timeline](docs/screenshots/09-coordinator-veteran.png)
+**Per-veteran timeline** — flag explanation, domain sparklines, action panel with AI-assist, embedded triage protocol, recent activity timeline.
+![Per-veteran timeline](docs/screenshots/10-coordinator-veteran.png)
+
+**Messaging** — thread list (with unread dots, risk badges) and 1:1 thread with AI-assist drawer.
+| Threads | Thread (with AI context) |
+|---|---|
+| ![Threads](docs/screenshots/11-coordinator-messages.png) | ![Thread](docs/screenshots/12-coordinator-thread.png) |
 
 ### Clinical Lead
-![Clinical escalations](docs/screenshots/10-clinical-escalations.png)
+![Clinical escalations](docs/screenshots/13-clinical-escalations.png)
 
 ### Program Manager
-![Cohort dashboard](docs/screenshots/11-program-manager-cohort.png)
+![Cohort dashboard](docs/screenshots/14-program-manager-cohort.png)

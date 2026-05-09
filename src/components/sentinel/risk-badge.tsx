@@ -6,6 +6,7 @@ import type { RiskLevel } from "@/lib/risk/types";
  * Risk badge — coordinator-side ONLY. Never visible to veterans.
  *
  * Color is paired with text and icon. Color is never the sole indicator (a11y).
+ * Optional `pulse` adds a subtle ring on RED only — honors prefers-reduced-motion.
  */
 const config: Record<
   RiskLevel,

@@ -1,26 +1,29 @@
 /**
- * Auth configuration — magic links primary, password backup, MFA hooks.
+ * Auth configuration — magic links via Resend, plus Argon2id password backup.
  *
- * Uses NextAuth v5 (beta). Sessions are stored server-side via the Prisma
- * adapter so they can be revoked. Idle and absolute timeouts are enforced
- * per role (staff: 15m idle / 12h absolute; veterans: 30d idle / 90d absolute).
+ * Sessions are stored server-side via the Prisma adapter so they can be
+ * revoked. Idle/absolute timeouts vary by role (staff: 15m/12h; veterans:
+ * 30d/90d) and are enforced in the session callback.
  *
- * MFA is enforced for SUPER_ADMIN, COORDINATOR (org-configurable), CLINICAL_LEAD,
- * PROGRAM_MANAGER, and any user with isOrgAdmin = true.
+ * MFA enforcement happens at the application layer for sensitive actions
+ * (see `withAuth` wrapper). NextAuth's job here is identity, not policy.
  */
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth, { type NextAuthConfig } from "next-auth";
+import EmailProvider from "next-auth/providers/nodemailer";
 import { prisma } from "@/lib/db/prisma";
+import { sendEmail } from "@/lib/email/send";
+import { MagicLinkEmail } from "@/lib/email/templates/magic-link";
 
 const STAFF_ROLES = new Set(["COORDINATOR", "CLINICAL_LEAD", "PROGRAM_MANAGER", "SUPER_ADMIN"]);
+const MAGIC_LINK_TTL_MIN = 15;
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "database",
-    // Default to staff timeouts; we override per session in callbacks.
-    maxAge: 15 * 60, // 15 minutes idle
+    maxAge: 15 * 60,
     updateAge: 60,
   },
   pages: {
@@ -29,34 +32,50 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   providers: [
-    // Magic link provider configured at runtime in the route handler so we can
-    // inject the org-aware "from" address.
+    EmailProvider({
+      // We override `sendVerificationRequest` to route through our Resend
+      // wrapper. NextAuth's nodemailer provider still validates `server`,
+      // so we point at a stub. Outbound delivery actually happens via Resend
+      // — the SMTP transport is never used.
+      server: process.env.EMAIL_SERVER ?? "smtp://stub:stub@localhost:1025",
+      maxAge: MAGIC_LINK_TTL_MIN * 60,
+      from: process.env.EMAIL_FROM_PLATFORM ?? "noreply@platform.tld",
+      sendVerificationRequest: async ({ identifier, url }) => {
+        // Find the recipient's organization for branding (if they exist).
+        const user = await prisma.user.findFirst({
+          where: { email: identifier },
+          select: { id: true, organizationId: true },
+        });
+        await sendEmail({
+          organizationId: user?.organizationId ?? null,
+          to: identifier,
+          recipientUserId: user?.id ?? "anonymous",
+          category: "ACCOUNT_SECURITY",
+          subject: "Your Sentinel sign-in link",
+          template: MagicLinkEmail({ url, expiresMinutes: MAGIC_LINK_TTL_MIN }),
+          templateId: "magic-link-v1",
+          text: `Sign in to Sentinel: ${url}\n\nThis link expires in ${MAGIC_LINK_TTL_MIN} minutes.`,
+        });
+      },
+    }),
   ],
   callbacks: {
     async session({ session, user }) {
-      // Attach role + organization to the session.
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
         select: {
-          id: true,
-          role: true,
-          organizationId: true,
-          isOrgAdmin: true,
-          accountState: true,
-          mfaEnabled: true,
+          id: true, role: true, organizationId: true, isOrgAdmin: true,
+          accountState: true, mfaEnabled: true,
         },
       });
       if (!dbUser) return session;
 
-      // Block sessions for non-ACTIVE accounts.
+      // Block non-ACTIVE accounts.
       if (dbUser.accountState !== "ACTIVE") {
-        // Returning a session with no user effectively logs them out; the
-        // middleware also enforces this.
         return { ...session, user: { ...session.user, id: dbUser.id } };
       }
 
       const isStaff = STAFF_ROLES.has(dbUser.role);
-      // Tighter idle for staff; veterans get a longer window per spec.
       session.expires = new Date(
         Date.now() + (isStaff ? 15 * 60 : 30 * 24 * 60 * 60) * 1000,
       ).toISOString();
@@ -76,15 +95,9 @@ export const authConfig: NextAuthConfig = {
   },
   events: {
     async signIn({ user }) {
-      // Record auth event. New-device detection happens in a separate flow
-      // that compares against prior Session userAgent + IP.
       if (!user.id) return;
       await prisma.authEvent.create({
-        data: {
-          userId: user.id,
-          eventType: "LOGIN_SUCCESS",
-          metadata: {},
-        },
+        data: { userId: user.id, eventType: "LOGIN_SUCCESS" },
       });
       await prisma.user.update({
         where: { id: user.id },
@@ -97,9 +110,7 @@ export const authConfig: NextAuthConfig = {
           ? (message.session as { userId?: string }).userId
           : undefined;
       if (!userId) return;
-      await prisma.authEvent.create({
-        data: { userId, eventType: "LOGOUT", metadata: {} },
-      });
+      await prisma.authEvent.create({ data: { userId, eventType: "LOGOUT" } });
     },
   },
 };

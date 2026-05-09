@@ -1,0 +1,24 @@
+{
+  "name": "Sentinel",
+  "short_name": "Sentinel",
+  "description": "Veteran first-year transition support",
+  "start_url": "/v",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAF7",
+  "theme_color": "#FAFAF7",
+  "categories": ["health", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon-192.png",      "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png",      "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-mask-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-mask-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Check in", "short_name": "Check in", "url": "/v/check-in" },
+    { "name": "Messages", "short_name": "Messages", "url": "/v/messages" }
+  ]
+}
