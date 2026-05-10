@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/security/api-auth";
 import { withTenant } from "@/lib/db/tenant-context";
+import { currentWeekNumber } from "@/lib/program/week";
 
 export const GET = withAuth(
   async (req, ctx) => {
@@ -55,10 +56,7 @@ export const GET = withAuth(
       veterans: veterans.map((v) => ({
         id: v.userId,
         name: v.user.displayName ?? v.user.email,
-        week: Math.max(
-          1,
-          Math.floor((Date.now() - v.programStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1,
-        ),
+        week: currentWeekNumber(v.programStartDate),
       })),
     });
   },

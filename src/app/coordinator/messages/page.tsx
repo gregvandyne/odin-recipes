@@ -5,6 +5,7 @@ import { MessageSquare } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { withTenant } from "@/lib/db/tenant-context";
 import { decryptField, messageAad } from "@/lib/security/encryption";
+import { currentWeekNumber } from "@/lib/program/week";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -79,15 +80,7 @@ export default async function CoordinatorMessages() {
           }
         }
         const profile = profileById.get(t.veteranId);
-        const week = profile
-          ? Math.max(
-              1,
-              Math.floor(
-                (Date.now() - profile.programStartDate.getTime()) /
-                  (7 * 24 * 60 * 60 * 1000),
-              ) + 1,
-            )
-          : null;
+        const week = profile ? currentWeekNumber(profile.programStartDate) : null;
         return {
           id: t.id,
           veteranName: t.veteran.displayName ?? t.veteran.email,

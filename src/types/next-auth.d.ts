@@ -11,6 +11,12 @@ declare module "next-auth" {
       organizationId?: string | null;
       isOrgAdmin?: boolean;
       mfaEnabled?: boolean;
+      /**
+       * AccountState mirror exposed via the session callback. Non-ACTIVE
+       * values mean every authenticated layout's `requireActiveSession`
+       * helper bounces the user to /auth/account-suspended.
+       */
+      accountState?: "INVITED" | "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
     };
   }
 }

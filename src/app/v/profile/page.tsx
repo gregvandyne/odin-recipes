@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight, Shield, Bell, ScanLine } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { withTenant } from "@/lib/db/tenant-context";
+import { currentWeekNumber } from "@/lib/program/week";
 import { Avatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/ui/page-header";
 import { SignOutButton } from "./sign-out-button";
@@ -50,15 +51,7 @@ export default async function VeteranProfilePage() {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  const week = data.profile
-    ? Math.max(
-        1,
-        Math.floor(
-          (Date.now() - data.profile.programStartDate.getTime()) /
-            (7 * 24 * 60 * 60 * 1000),
-        ) + 1,
-      )
-    : null;
+  const week = data.profile ? currentWeekNumber(data.profile.programStartDate) : null;
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   return (

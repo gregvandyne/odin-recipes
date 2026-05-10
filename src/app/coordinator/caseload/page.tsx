@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { withTenant } from "@/lib/db/tenant-context";
+import { currentWeekNumber } from "@/lib/program/week";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -75,10 +76,7 @@ export default async function CoordinatorCaseload() {
       return profiles.map((p) => ({
         veteranId: p.userId,
         name: p.user.displayName ?? p.user.email,
-        week: Math.max(
-          1,
-          Math.floor((Date.now() - p.programStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1,
-        ),
+        week: currentWeekNumber(p.programStartDate),
         top: topByVet.get(p.userId) ?? null,
         last: lastByVet.get(p.userId) ?? null,
       }));

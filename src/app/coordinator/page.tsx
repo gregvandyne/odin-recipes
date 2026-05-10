@@ -6,6 +6,7 @@ import { withTenant } from "@/lib/db/tenant-context";
 import { redirect } from "next/navigation";
 import { QueueLiveClient } from "./queue-live-client";
 import { Inbox } from "lucide-react";
+import { currentWeekNumber } from "@/lib/program/week";
 
 interface QueueItem {
   veteranId: string;
@@ -106,12 +107,7 @@ export default async function CoordinatorQueue() {
 
   const items: QueueItem[] = flags.map((f) => {
     const v = veteranById.get(f.veteranId);
-    const weekNumber = v
-      ? Math.max(
-          1,
-          Math.floor((Date.now() - v.programStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1,
-        )
-      : 0;
+    const weekNumber = v ? currentWeekNumber(v.programStartDate) : 0;
     return {
       veteranId: f.veteranId,
       veteranName: v?.user.displayName ?? v?.user.email ?? "Unknown",
