@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Mail, KeyRound, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError, Input } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -167,7 +168,9 @@ export function SignInForm() {
           disabled={submitting || !emailValid || (passwordOpen && !password)}
         >
           {submitting ? (
-            "Sending…"
+            <>
+              <Spinner size={16} /> Sending…
+            </>
           ) : passwordOpen ? (
             <>
               <KeyRound className="h-4 w-4" aria-hidden /> Continue with password

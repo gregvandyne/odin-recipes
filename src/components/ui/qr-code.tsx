@@ -25,6 +25,10 @@ export function QrCode({
 
   React.useEffect(() => {
     let cancelled = false;
+    // QR readers tolerate either polarity, but cameras find a high-contrast
+    // dark-on-light matrix faster. We always render the matrix dark on a
+    // white background for that reason; the parent element controls the
+    // outer border so dark mode still looks intentional.
     QRCode.toString(value, {
       type: "svg",
       errorCorrectionLevel: "M",

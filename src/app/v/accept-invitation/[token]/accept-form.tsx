@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError, FieldHelpText, Input, Checkbox } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 
 interface Props {
@@ -149,7 +150,13 @@ export function AcceptForm({ token, email, role }: Props) {
         disabled={submitting}
         className="w-full justify-center"
       >
-        {submitting ? "Setting up…" : "Accept and continue"}
+        {submitting ? (
+          <>
+            <Spinner size={16} /> Setting up…
+          </>
+        ) : (
+          "Accept and continue"
+        )}
       </Button>
     </form>
   );

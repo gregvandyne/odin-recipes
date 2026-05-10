@@ -13,6 +13,8 @@ import {
   Select,
   Checkbox,
 } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
+import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { toast } from "@/components/ui/toast";
 
 interface InitialProfile {
@@ -128,7 +130,7 @@ export function ProfileForm({ initial, defaultTimezone }: Props) {
 
   return (
     <div className="space-y-6">
-      <Stepper steps={STEPS} current={step} />
+      <WizardStepper steps={STEPS} current={step} ariaLabel="Onboarding progress" />
 
       {step === "cadence" && (
         <section className="space-y-3 rounded-lg border border-border bg-canvas-card p-5">
@@ -267,7 +269,13 @@ export function ProfileForm({ initial, defaultTimezone }: Props) {
               Back
             </Button>
             <Button onClick={submit} variant="primary" disabled={submitting}>
-              {submitting ? "Saving…" : "All set"}
+              {submitting ? (
+                <>
+                  <Spinner size={16} /> Saving…
+                </>
+              ) : (
+                "All set"
+              )}
             </Button>
           </div>
         </section>
@@ -276,52 +284,3 @@ export function ProfileForm({ initial, defaultTimezone }: Props) {
   );
 }
 
-function Stepper({
-  steps,
-  current,
-}: {
-  steps: typeof STEPS;
-  current: StepKey;
-}) {
-  const currentIdx = steps.findIndex((s) => s.key === current);
-  return (
-    <ol className="flex items-center gap-2" aria-label="Onboarding progress">
-      {steps.map((s, i) => {
-        const isPast = i < currentIdx;
-        const isCurrent = i === currentIdx;
-        return (
-          <li key={s.key} className="flex flex-1 items-center gap-2">
-            <span
-              aria-current={isCurrent ? "step" : undefined}
-              className={[
-                "grid h-7 w-7 shrink-0 place-items-center rounded-full text-caption font-semibold transition-colors",
-                isPast
-                  ? "bg-primary text-primary-foreground"
-                  : isCurrent
-                  ? "bg-primary/10 text-primary ring-2 ring-primary/40"
-                  : "bg-canvas-banded text-ink-tertiary",
-              ].join(" ")}
-            >
-              {i + 1}
-            </span>
-            <span
-              className={[
-                "truncate text-caption",
-                isCurrent
-                  ? "font-semibold text-ink-primary"
-                  : isPast
-                  ? "text-ink-secondary"
-                  : "text-ink-tertiary",
-              ].join(" ")}
-            >
-              {s.label}
-            </span>
-            {i < steps.length - 1 && (
-              <span className="ml-1 hidden h-px flex-1 bg-border sm:block" aria-hidden />
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}

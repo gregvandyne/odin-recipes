@@ -132,7 +132,11 @@ export function QueueLiveClient() {
 
   return (
     <>
-      <div className="mb-3 flex items-center gap-2 text-caption">
+      <div
+        role="status"
+        aria-live="polite"
+        className="mb-3 flex items-center gap-2 text-caption"
+      >
         <span
           className={cn("inline-block h-2 w-2 rounded-full", STATUS_DOT[status])}
           aria-hidden

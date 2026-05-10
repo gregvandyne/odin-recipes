@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError, FieldHelpText, Input, Checkbox } from "@/components/ui/field";
 import { CopyButton } from "@/components/ui/copy-button";
 import { QrCode } from "@/components/ui/qr-code";
+import { Spinner } from "@/components/ui/spinner";
+import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { toast } from "@/components/ui/toast";
 
 interface SetupResponse {
@@ -77,7 +79,7 @@ export function MfaSetupClient() {
 
   return (
     <div className="space-y-6">
-      <Stepper steps={STEPS} current={step} />
+      <WizardStepper steps={STEPS} current={step} />
 
       {step === "start" && (
         <section className="space-y-3 rounded-lg border border-border bg-canvas-card p-5">
@@ -100,7 +102,13 @@ export function MfaSetupClient() {
             disabled={busy}
             className="w-full justify-center sm:w-auto"
           >
-            {busy ? "Setting up…" : "Start setup"}
+            {busy ? (
+              <>
+                <Spinner size={16} /> Setting up…
+              </>
+            ) : (
+              "Start setup"
+            )}
           </Button>
         </section>
       )}
@@ -209,61 +217,17 @@ export function MfaSetupClient() {
               onClick={confirmCode}
               disabled={busy || code.replace(/\s+/g, "").length < 6}
             >
-              {busy ? "Confirming…" : "Confirm"}
+              {busy ? (
+                <>
+                  <Spinner size={16} /> Confirming…
+                </>
+              ) : (
+                "Confirm"
+              )}
             </Button>
           </div>
         </section>
       )}
     </div>
-  );
-}
-
-function Stepper({
-  steps,
-  current,
-}: {
-  steps: typeof STEPS;
-  current: StepKey;
-}) {
-  const currentIdx = steps.findIndex((s) => s.key === current);
-  return (
-    <ol className="flex items-center gap-2" aria-label="Setup progress">
-      {steps.map((s, i) => {
-        const isPast = i < currentIdx;
-        const isCurrent = i === currentIdx;
-        return (
-          <li key={s.key} className="flex flex-1 items-center gap-2">
-            <span
-              aria-current={isCurrent ? "step" : undefined}
-              className={[
-                "grid h-7 w-7 shrink-0 place-items-center rounded-full text-caption font-semibold transition-colors",
-                isPast
-                  ? "bg-primary text-primary-foreground"
-                  : isCurrent
-                  ? "bg-primary/10 text-primary ring-2 ring-primary/40"
-                  : "bg-canvas-banded text-ink-tertiary",
-              ].join(" ")}
-            >
-              {i + 1}
-            </span>
-            <span
-              className={[
-                "truncate text-caption",
-                isCurrent
-                  ? "font-semibold text-ink-primary"
-                  : isPast
-                  ? "text-ink-secondary"
-                  : "text-ink-tertiary",
-              ].join(" ")}
-            >
-              {s.label}
-            </span>
-            {i < steps.length - 1 && (
-              <span className="ml-1 hidden h-px flex-1 bg-border sm:block" aria-hidden />
-            )}
-          </li>
-        );
-      })}
-    </ol>
   );
 }
