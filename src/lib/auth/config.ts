@@ -101,6 +101,25 @@ export const authConfig: NextAuthConfig = {
       await prisma.authEvent.create({
         data: { userId: user.id, eventType: "LOGIN_SUCCESS" },
       });
+      // Advance the account-state lifecycle on first verified sign-in.
+      // INVITED → PENDING_VERIFICATION when emailVerifiedAt is set by NextAuth's
+      // verification token check; PENDING_VERIFICATION → ACTIVE happens
+      // inside /api/auth/accept-invitation once consent is captured (and,
+      // for staff, after MFA setup completes).
+      const u = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { accountState: true, emailVerifiedAt: true },
+      });
+      if (u?.accountState === "INVITED" && u.emailVerifiedAt) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            accountState: "PENDING_VERIFICATION",
+            accountStateChangedAt: new Date(),
+            accountStateReason: "magic-link verified",
+          },
+        });
+      }
       await prisma.user.update({
         where: { id: user.id },
         data: { lastActiveAt: new Date(), failedLoginAttempts: 0 },

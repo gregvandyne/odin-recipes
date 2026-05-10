@@ -67,6 +67,14 @@ This repository is a working scaffold of the platform. It implements:
 | CI pipeline (lint, typecheck, vitest, isolation, backtest, build, Playwright) | ✅ | `.github/workflows/ci.yml` |
 | Org provisioning + cohort wizards + CSV roster import | ✅ | `src/app/api/admin/orgs/`, `cohorts/`, `veterans/import/` |
 | Compliance docs (data flow, threat model, DR runbook, failover runbook) | ✅ | `docs/compliance/`, `docs/runbooks/` |
+| Real-time messaging (SSE per thread, mark-as-read on focus) | ✅ | `src/components/sentinel/thread-view.tsx`, `src/app/api/messages/threads/[id]/stream/`, `read/` |
+| Coordinator + veteran thread surfaces (DB-backed, optimistic send) | ✅ | `src/app/coordinator/messages/[id]/`, `src/app/v/messages/` |
+| Coordinator caseload + admin coordinators tables | ✅ | `src/app/coordinator/caseload/`, `src/app/admin/coordinators/` |
+| Audit log browser + NDJSON export (MFA-gated) | ✅ | `src/app/admin/audit/` |
+| Veteran profile / settings landing | ✅ | `src/app/v/profile/` |
+| Veteran-app onboarding gate (consent + profile) | ✅ | `src/app/v/layout.tsx` |
+| Lazy-loaded ⌘K command palette with veteran search | ✅ | `src/components/sentinel/command-palette-host.tsx`, `src/app/api/search/` |
+| Production-readiness checklist + DR runbook | ✅ | `docs/runbooks/production-readiness.md`, `docs/runbooks/dr-restore.md` |
 | Design system tokens | ✅ | `tailwind.config.ts`, `src/app/globals.css` |
 | Custom components: `RiskBadge`, `CrisisResourceBanner`, `CheckInQuestion`, `DomainSparkline`, `TriageQueueItem` | ✅ | `src/components/sentinel/` |
 | Veteran app: home, check-in (with drafts), completion, trends, insights, onboarding | ✅ | `src/app/v/` |

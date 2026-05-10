@@ -1,5 +1,5 @@
 import { StaffSidebar } from "@/components/sentinel/staff-sidebar";
-import { CommandPalette } from "@/components/sentinel/command-palette";
+import { CommandPaletteHost } from "@/components/sentinel/command-palette-host";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
 
 /**
@@ -29,7 +29,7 @@ export default function CoordinatorLayout({ children }: { children: React.ReactN
         </header>
         <main id="main">{children}</main>
       </div>
-      <CommandPalette />
+      <CommandPaletteHost />
     </div>
   );
 }

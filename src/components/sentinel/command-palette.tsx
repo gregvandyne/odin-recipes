@@ -43,9 +43,9 @@ interface VeteranHit {
   week: number;
 }
 
-export function CommandPalette() {
+export function CommandPalette({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
   const router = useRouter();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(defaultOpen);
   const [query, setQuery] = React.useState("");
   const [veterans, setVeterans] = React.useState<VeteranHit[]>([]);
   const [searching, setSearching] = React.useState(false);

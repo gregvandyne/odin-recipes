@@ -51,6 +51,10 @@ export function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("x-correlation-id", correlationId);
+  // Server components can read the requested pathname via next/headers; we
+  // forward it explicitly so layout-level guards (e.g. the veteran
+  // onboarding redirect) can decide whether to redirect.
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
 
