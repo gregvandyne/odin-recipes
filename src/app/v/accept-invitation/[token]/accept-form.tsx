@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError, FieldHelpText, Input, Checkbox } from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
 
 interface Props {
   token: string;
@@ -19,37 +22,46 @@ export function AcceptForm({ token, email, role }: Props) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{
+    displayName?: string;
+    password?: string;
+    confirmPassword?: string;
+    consent?: string;
+  }>({});
+
+  function validate(): boolean {
+    const e: typeof errors = {};
+    if (!displayName.trim()) e.displayName = "Tell us how to address you.";
+    if (isStaff && password) {
+      if (password.length < 12) e.password = "Use at least 12 characters.";
+      if (confirmPassword !== password) e.confirmPassword = "Passwords don't match.";
+    }
+    if (!consent) e.consent = "Please confirm consent to continue.";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!consent) {
-      setError("Please confirm consent to continue.");
-      return;
-    }
-    if (isStaff && password && password !== confirmPassword) {
-      setError("Passwords don't match.");
-      return;
-    }
+    if (!validate()) return;
     setSubmitting(true);
-    setError(null);
     try {
       const res = await fetch("/api/auth/accept-invitation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          displayName: displayName || undefined,
+          displayName: displayName.trim() || undefined,
           password: isStaff && password ? password : undefined,
           consentVersion: CONSENT_VERSION,
         }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(j.error || "Couldn't accept the invitation");
+        toast.error(j.error || "Couldn't accept the invitation");
         return;
       }
-      // Now sign the user in via magic link so the session is minted.
+      toast.success("Welcome to Sentinel.");
       router.push("/auth/sign-in?email=" + encodeURIComponent(email));
     } finally {
       setSubmitting(false);
@@ -57,75 +69,88 @@ export function AcceptForm({ token, email, role }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 space-y-4">
+    <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
       <div className="rounded-md border border-border bg-canvas-banded p-4">
-        <p className="text-caption text-ink-tertiary">Inviting you</p>
+        <p className="text-caption uppercase tracking-wide text-ink-tertiary">Inviting you</p>
         <p className="text-body text-ink-primary">{email}</p>
       </div>
-      <label className="block">
-        <span className="text-caption font-semibold text-ink-secondary">Your name</span>
-        <input
+      <Field>
+        <FieldLabel>Your name</FieldLabel>
+        <Input
           type="text"
-          required
           autoComplete="name"
           value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="mt-1 h-12 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
+          onChange={(e) => {
+            setDisplayName(e.target.value);
+            if (errors.displayName) setErrors((er) => ({ ...er, displayName: undefined }));
+          }}
+          required
         />
-      </label>
+        <FieldError>{errors.displayName}</FieldError>
+      </Field>
       {isStaff && (
         <>
-          <label className="block">
-            <span className="text-caption font-semibold text-ink-secondary">
-              Backup password (optional, 12+ characters)
-            </span>
-            <input
+          <Field>
+            <FieldLabel optional>Backup password (12+ characters)</FieldLabel>
+            <Input
               type="password"
               minLength={12}
               autoComplete="new-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 h-12 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors((er) => ({ ...er, password: undefined }));
+              }}
             />
-          </label>
+            <FieldError>{errors.password}</FieldError>
+            <FieldHelpText>
+              Magic links are the primary way in. A backup password is only for if your inbox is
+              briefly unavailable.
+            </FieldHelpText>
+          </Field>
           {password && (
-            <label className="block">
-              <span className="text-caption font-semibold text-ink-secondary">Confirm password</span>
-              <input
+            <Field>
+              <FieldLabel>Confirm password</FieldLabel>
+              <Input
                 type="password"
                 autoComplete="new-password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 h-12 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errors.confirmPassword)
+                    setErrors((er) => ({ ...er, confirmPassword: undefined }));
+                }}
               />
-            </label>
+              <FieldError>{errors.confirmPassword}</FieldError>
+            </Field>
           )}
         </>
       )}
-      <label className="flex items-start gap-2 text-body text-ink-secondary">
-        <input
-          type="checkbox"
+      <Field>
+        <Checkbox
+          label={
+            <>
+              I've read the consent and I'm in. (You can withdraw at any time from your account
+              settings.)
+            </>
+          }
           checked={consent}
-          onChange={(e) => setConsent(e.target.checked)}
-          className="mt-1"
+          onChange={(e) => {
+            setConsent(e.target.checked);
+            if (errors.consent) setErrors((er) => ({ ...er, consent: undefined }));
+          }}
         />
-        <span>
-          I've read the consent and I'm in. (You can withdraw at any time from your account
-          settings.)
-        </span>
-      </label>
-      {error && (
-        <p className="text-body text-crisis" role="alert">
-          {error}
-        </p>
-      )}
-      <button
+        <FieldError>{errors.consent}</FieldError>
+      </Field>
+      <Button
         type="submit"
+        variant="primary"
+        size="lg"
         disabled={submitting}
-        className="h-12 w-full rounded-md bg-primary text-body font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+        className="w-full justify-center"
       >
         {submitting ? "Setting up…" : "Accept and continue"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -2,6 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Clock, Flag as FlagIcon, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldLabel,
+  FieldError,
+  FieldHelpText,
+  Input,
+  Select,
+  Checkbox,
+} from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
 
 interface InitialProfile {
   timezone: string;
@@ -24,10 +36,18 @@ interface Props {
 const BRANCHES = ["Army", "Navy", "Air Force", "Marines", "Coast Guard", "Space Force", "National Guard"];
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+const STEPS = [
+  { key: "cadence", label: "When to ask", icon: Clock },
+  { key: "service", label: "Your service", icon: FlagIcon },
+  { key: "contact", label: "If we can't reach you", icon: Phone },
+] as const;
+
+type StepKey = (typeof STEPS)[number]["key"];
+
 export function ProfileForm({ initial, defaultTimezone }: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<StepKey>("cadence");
 
   const [timezone, setTimezone] = useState(initial?.timezone || defaultTimezone);
   const [day, setDay] = useState<number>(initial?.checkInDayOfWeek ?? 0);
@@ -42,10 +62,37 @@ export function ProfileForm({ initial, defaultTimezone }: Props) {
   const [ecConsent, setEcConsent] = useState(!!initial?.emergencyContactConsent);
   const [vaFacility, setVaFacility] = useState(initial?.localVAFacility ?? "");
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  const [errors, setErrors] = useState<{ separationDate?: string; timezone?: string }>({});
+
+  function validateStep(s: StepKey): boolean {
+    const e: typeof errors = {};
+    if (s === "cadence") {
+      if (!timezone) e.timezone = "Set your timezone so we ask at the right hour.";
+    }
+    if (s === "service") {
+      if (!separationDate) e.separationDate = "Pick the date you separated from service.";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  function next() {
+    if (!validateStep(step)) return;
+    if (step === "cadence") setStep("service");
+    else if (step === "service") setStep("contact");
+  }
+
+  function prev() {
+    if (step === "service") setStep("cadence");
+    else if (step === "contact") setStep("service");
+  }
+
+  async function submit() {
+    if (!validateStep("cadence") || !validateStep("service")) {
+      setStep("cadence");
+      return;
+    }
     setSubmitting(true);
-    setError(null);
     try {
       const res = await fetch("/api/onboarding/profile", {
         method: "POST",
@@ -68,9 +115,10 @@ export function ProfileForm({ initial, defaultTimezone }: Props) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || "Couldn't save");
+        toast.error(j.error || "Couldn't save");
         return;
       }
+      toast.success("All set. Welcome.");
       router.push("/v");
       router.refresh();
     } finally {
@@ -79,153 +127,201 @@ export function ProfileForm({ initial, defaultTimezone }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <fieldset className="rounded-lg border border-border bg-canvas-card p-5">
-        <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-ink-tertiary">
-          When to ask you
-        </legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Timezone</span>
-            <input
-              type="text"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              required
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            />
-          </label>
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Day</span>
-            <select
-              value={day}
-              onChange={(e) => setDay(Number(e.target.value))}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            >
-              {DAYS.map((d, i) => (
-                <option key={i} value={i}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Local time</span>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              required
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            />
-          </label>
-        </div>
-      </fieldset>
+    <div className="space-y-6">
+      <Stepper steps={STEPS} current={step} />
 
-      <fieldset className="rounded-lg border border-border bg-canvas-card p-5">
-        <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-ink-tertiary">
-          About your service
-        </legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Separation date</span>
-            <input
-              type="date"
-              value={separationDate}
-              onChange={(e) => setSeparationDate(e.target.value)}
-              required
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            />
-          </label>
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Branch</span>
-            <select
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            >
-              {BRANCHES.map((b) => (
-                <option key={b}>{b}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Years of service (optional)</span>
-            <input
-              type="number"
-              min={0}
-              max={50}
-              value={years}
-              onChange={(e) => setYears(e.target.value)}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            />
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset className="rounded-lg border border-border bg-canvas-card p-5">
-        <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-ink-tertiary">
-          If we can't reach you
-        </legend>
-        <p className="mb-3 text-caption text-ink-tertiary">
-          Optional. Only used if your coordinator can't reach you and they're worried.
-          We'll never call without telling you first.
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Name</span>
-            <input
-              type="text"
-              value={ecName}
-              onChange={(e) => setEcName(e.target.value)}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            />
-          </label>
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Phone</span>
-            <input
-              type="tel"
-              value={ecPhone}
-              onChange={(e) => setEcPhone(e.target.value)}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-            />
-          </label>
-        </div>
-        <label className="mt-3 inline-flex items-center gap-2 text-body text-ink-secondary">
-          <input
-            type="checkbox"
-            checked={ecConsent}
-            onChange={(e) => setEcConsent(e.target.checked)}
-          />
-          They've given permission for us to contact them in a crisis.
-        </label>
-      </fieldset>
-
-      <fieldset className="rounded-lg border border-border bg-canvas-card p-5">
-        <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-ink-tertiary">
-          Local VA (optional)
-        </legend>
-        <input
-          type="text"
-          placeholder="e.g. James A. Haley Veterans Hospital"
-          value={vaFacility}
-          onChange={(e) => setVaFacility(e.target.value)}
-          className="h-11 w-full rounded-md border border-border bg-canvas-card px-3 text-body"
-        />
-      </fieldset>
-
-      {error && (
-        <p className="text-body text-crisis" role="alert">
-          {error}
-        </p>
+      {step === "cadence" && (
+        <section className="space-y-3 rounded-lg border border-border bg-canvas-card p-5">
+          <p className="text-caption text-ink-tertiary">
+            We'll send your weekly check-in at this local time.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field>
+              <FieldLabel>Timezone</FieldLabel>
+              <Input
+                type="text"
+                value={timezone}
+                onChange={(e) => {
+                  setTimezone(e.target.value);
+                  if (errors.timezone) setErrors((er) => ({ ...er, timezone: undefined }));
+                }}
+                required
+              />
+              <FieldError>{errors.timezone}</FieldError>
+            </Field>
+            <Field>
+              <FieldLabel>Day</FieldLabel>
+              <Select value={day} onChange={(e) => setDay(Number(e.target.value))}>
+                {DAYS.map((d, i) => (
+                  <option key={i} value={i}>
+                    {d}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel>Local time</FieldLabel>
+              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+            </Field>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={next} variant="primary">
+              Next
+            </Button>
+          </div>
+        </section>
       )}
-      <button
-        type="submit"
-        disabled={submitting}
-        className="h-12 w-full rounded-md bg-primary text-body font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
-      >
-        {submitting ? "Saving…" : "All set"}
-      </button>
-    </form>
+
+      {step === "service" && (
+        <section className="space-y-3 rounded-lg border border-border bg-canvas-card p-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field>
+              <FieldLabel>Separation date</FieldLabel>
+              <Input
+                type="date"
+                value={separationDate}
+                onChange={(e) => {
+                  setSeparationDate(e.target.value);
+                  if (errors.separationDate)
+                    setErrors((er) => ({ ...er, separationDate: undefined }));
+                }}
+                required
+              />
+              <FieldError>{errors.separationDate}</FieldError>
+            </Field>
+            <Field>
+              <FieldLabel>Branch</FieldLabel>
+              <Select value={branch} onChange={(e) => setBranch(e.target.value)}>
+                {BRANCHES.map((b) => (
+                  <option key={b}>{b}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel optional>Years of service</FieldLabel>
+              <Input
+                type="number"
+                min={0}
+                max={50}
+                value={years}
+                onChange={(e) => setYears(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field>
+            <FieldLabel optional>Local VA facility</FieldLabel>
+            <Input
+              type="text"
+              placeholder="e.g. James A. Haley Veterans Hospital"
+              value={vaFacility}
+              onChange={(e) => setVaFacility(e.target.value)}
+            />
+            <FieldHelpText>If you have a regular VA, we'll surface it for your coordinator.</FieldHelpText>
+          </Field>
+          <div className="flex justify-between pt-2">
+            <Button onClick={prev} variant="ghost">
+              Back
+            </Button>
+            <Button onClick={next} variant="primary">
+              Next
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {step === "contact" && (
+        <section className="space-y-3 rounded-lg border border-border bg-canvas-card p-5">
+          <p className="text-caption text-ink-tertiary">
+            Optional. Only used if your coordinator can't reach you and they're worried.
+            We'll never call without telling you first.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field>
+              <FieldLabel optional>Name</FieldLabel>
+              <Input
+                type="text"
+                value={ecName}
+                onChange={(e) => setEcName(e.target.value)}
+                autoComplete="name"
+              />
+            </Field>
+            <Field>
+              <FieldLabel optional>Phone</FieldLabel>
+              <Input
+                type="tel"
+                value={ecPhone}
+                onChange={(e) => setEcPhone(e.target.value)}
+                autoComplete="tel"
+              />
+            </Field>
+          </div>
+          <Field>
+            <Checkbox
+              label="They've given permission for us to contact them in a crisis."
+              checked={ecConsent}
+              onChange={(e) => setEcConsent(e.target.checked)}
+            />
+          </Field>
+          <div className="flex justify-between pt-2">
+            <Button onClick={prev} variant="ghost">
+              Back
+            </Button>
+            <Button onClick={submit} variant="primary" disabled={submitting}>
+              {submitting ? "Saving…" : "All set"}
+            </Button>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function Stepper({
+  steps,
+  current,
+}: {
+  steps: typeof STEPS;
+  current: StepKey;
+}) {
+  const currentIdx = steps.findIndex((s) => s.key === current);
+  return (
+    <ol className="flex items-center gap-2" aria-label="Onboarding progress">
+      {steps.map((s, i) => {
+        const isPast = i < currentIdx;
+        const isCurrent = i === currentIdx;
+        return (
+          <li key={s.key} className="flex flex-1 items-center gap-2">
+            <span
+              aria-current={isCurrent ? "step" : undefined}
+              className={[
+                "grid h-7 w-7 shrink-0 place-items-center rounded-full text-caption font-semibold transition-colors",
+                isPast
+                  ? "bg-primary text-primary-foreground"
+                  : isCurrent
+                  ? "bg-primary/10 text-primary ring-2 ring-primary/40"
+                  : "bg-canvas-banded text-ink-tertiary",
+              ].join(" ")}
+            >
+              {i + 1}
+            </span>
+            <span
+              className={[
+                "truncate text-caption",
+                isCurrent
+                  ? "font-semibold text-ink-primary"
+                  : isPast
+                  ? "text-ink-secondary"
+                  : "text-ink-tertiary",
+              ].join(" ")}
+            >
+              {s.label}
+            </span>
+            {i < steps.length - 1 && (
+              <span className="ml-1 hidden h-px flex-1 bg-border sm:block" aria-hidden />
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

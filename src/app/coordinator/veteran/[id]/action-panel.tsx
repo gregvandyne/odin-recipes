@@ -7,10 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Field,
+  FieldLabel,
+  FieldHelpText,
+  FieldError,
+  Input,
+  Textarea,
+  Select,
+  Checkbox,
+  RadioGroup,
+} from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
+import {
   MessageSquare,
   Phone,
   ArrowUpRight,
-  Sparkles,
   Check,
   CheckCircle2,
 } from "lucide-react";
@@ -45,37 +64,23 @@ export function ActionPanel({
   const router = useRouter();
   const [contactOpen, setContactOpen] = useState(false);
   const [escalateOpen, setEscalateOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function acknowledge() {
     if (!topFlagId) return;
     setBusy(true);
     try {
-      await fetch(`/api/flags/${topFlagId}/acknowledge`, {
+      const res = await fetch(`/api/flags/${topFlagId}/acknowledge`, {
         method: "POST",
         headers: { "Idempotency-Key": crypto.randomUUID() },
       });
-      router.refresh();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resolve() {
-    if (!topFlagId) return;
-    const outcome = prompt("Resolve outcome (contacted | escalated | false_positive | deferred):", "contacted");
-    if (!outcome) return;
-    setBusy(true);
-    try {
-      await fetch(`/api/flags/${topFlagId}/resolve`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": crypto.randomUUID(),
-        },
-        body: JSON.stringify({ outcome }),
-      });
-      router.refresh();
+      if (res.ok) {
+        toast.success("Flag acknowledged");
+        router.refresh();
+      } else {
+        toast.error("Couldn't acknowledge — try again.");
+      }
     } finally {
       setBusy(false);
     }
@@ -93,11 +98,11 @@ export function ActionPanel({
         </CardHeader>
         <CardContent className="space-y-2">
           {existingThreadId ? (
-            <Link href={`/coordinator/messages/${existingThreadId}`} className="block">
-              <Button variant="primary" className="w-full justify-start">
+            <Button asChild variant="primary" className="w-full justify-start">
+              <Link href={`/coordinator/messages/${existingThreadId}`}>
                 <MessageSquare className="h-4 w-4" /> Send message
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           ) : (
             <Button
               variant="primary"
@@ -129,7 +134,7 @@ export function ActionPanel({
             <Button
               variant="ghost"
               className="w-full justify-start text-ink-secondary"
-              onClick={resolve}
+              onClick={() => setResolveOpen(true)}
               disabled={busy}
             >
               <CheckCircle2 className="h-4 w-4" /> Resolve flag
@@ -161,38 +166,47 @@ export function ActionPanel({
         </CardContent>
       </Card>
 
-      {contactOpen && (
-        <LogContactModal
-          veteranId={veteranId}
-          onClose={() => setContactOpen(false)}
-          onSaved={() => {
-            setContactOpen(false);
-            router.refresh();
-          }}
-        />
-      )}
-      {escalateOpen && (
-        <EscalateModal
-          veteranId={veteranId}
-          flagId={topFlagId}
-          onClose={() => setEscalateOpen(false)}
-          onSaved={() => {
-            setEscalateOpen(false);
-            router.refresh();
-          }}
-        />
-      )}
+      <LogContactDialog
+        open={contactOpen}
+        onOpenChange={setContactOpen}
+        veteranId={veteranId}
+        onSaved={() => router.refresh()}
+      />
+      <EscalateDialog
+        open={escalateOpen}
+        onOpenChange={setEscalateOpen}
+        veteranId={veteranId}
+        flagId={topFlagId}
+        onSaved={() => router.refresh()}
+      />
+      <ResolveDialog
+        open={resolveOpen}
+        onOpenChange={setResolveOpen}
+        flagId={topFlagId}
+        onSaved={() => router.refresh()}
+      />
     </div>
   );
 }
 
-function LogContactModal({
+const CONTACT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "OUTREACH_CALL", label: "Outreach call" },
+  { value: "TEXT", label: "Text" },
+  { value: "EMAIL", label: "Email" },
+  { value: "IN_PERSON", label: "In person" },
+  { value: "CHECK_IN_REVIEW", label: "Check-in review" },
+  { value: "CRISIS", label: "Crisis" },
+];
+
+function LogContactDialog({
+  open,
+  onOpenChange,
   veteranId,
-  onClose,
   onSaved,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   veteranId: string;
-  onClose: () => void;
   onSaved: () => void;
 }) {
   const [type, setType] = useState("OUTREACH_CALL");
@@ -201,11 +215,25 @@ function LogContactModal({
   const [followUp, setFollowUp] = useState(false);
   const [followUpBy, setFollowUpBy] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ summary?: string; followUpBy?: string }>({});
+
+  function reset() {
+    setType("OUTREACH_CALL");
+    setDirection("OUTBOUND");
+    setSummary("");
+    setFollowUp(false);
+    setFollowUpBy("");
+    setErrors({});
+  }
 
   async function save() {
+    const nextErrors: typeof errors = {};
+    if (!summary.trim()) nextErrors.summary = "A short summary helps the next coordinator.";
+    if (followUp && !followUpBy) nextErrors.followUpBy = "When should we follow up?";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch("/api/contacts", {
         method: "POST",
@@ -224,9 +252,12 @@ function LogContactModal({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || "Couldn't save");
+        toast.error(j.error || "Couldn't save the contact.");
         return;
       }
+      toast.success("Contact logged. Editable for 24h.");
+      reset();
+      onOpenChange(false);
       onSaved();
     } finally {
       setBusy(false);
@@ -234,73 +265,101 @@ function LogContactModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-canvas-card p-5 shadow-soft">
-        <h2 className="text-body-lg font-semibold text-ink-primary">Log a contact</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Type</span>
-            <select className="mt-1 h-10 w-full rounded-md border border-border bg-canvas-card px-2 text-body" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="OUTREACH_CALL">Outreach call</option>
-              <option value="TEXT">Text</option>
-              <option value="EMAIL">Email</option>
-              <option value="IN_PERSON">In person</option>
-              <option value="CHECK_IN_REVIEW">Check-in review</option>
-              <option value="CRISIS">Crisis</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-caption text-ink-secondary">Direction</span>
-            <select className="mt-1 h-10 w-full rounded-md border border-border bg-canvas-card px-2 text-body" value={direction} onChange={(e) => setDirection(e.target.value)}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) reset();
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Log a contact</DialogTitle>
+          <DialogDescription>
+            Encrypted at rest. Editable for 24 hours, then locked.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field>
+            <FieldLabel>Type</FieldLabel>
+            <Select value={type} onChange={(e) => setType(e.target.value)}>
+              {CONTACT_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel>Direction</FieldLabel>
+            <Select value={direction} onChange={(e) => setDirection(e.target.value)}>
               <option value="OUTBOUND">Outbound</option>
               <option value="INBOUND">Inbound</option>
-            </select>
-          </label>
+            </Select>
+          </Field>
         </div>
-        <label className="mt-3 block">
-          <span className="text-caption text-ink-secondary">Summary</span>
-          <textarea
-            className="mt-1 w-full rounded-md border border-border bg-canvas-card p-2 text-body"
-            rows={4}
+        <Field>
+          <FieldLabel>Summary</FieldLabel>
+          <Textarea
+            rows={5}
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
+            placeholder="What did you cover? Anything to follow up on?"
           />
-        </label>
-        <label className="mt-3 inline-flex items-center gap-2 text-body text-ink-secondary">
-          <input type="checkbox" checked={followUp} onChange={(e) => setFollowUp(e.target.checked)} />
-          Follow-up required
-        </label>
+          <FieldError>{errors.summary}</FieldError>
+          <FieldHelpText>
+            What you write here is end-to-end encrypted. Stick to facts the next coordinator needs.
+          </FieldHelpText>
+        </Field>
+        <Field>
+          <Checkbox
+            label="A follow-up is needed"
+            checked={followUp}
+            onChange={(e) => setFollowUp(e.target.checked)}
+          />
+        </Field>
         {followUp && (
-          <input type="datetime-local" value={followUpBy} onChange={(e) => setFollowUpBy(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-border bg-canvas-card px-2 text-body" />
+          <Field>
+            <FieldLabel>Follow up by</FieldLabel>
+            <Input
+              type="datetime-local"
+              value={followUpBy}
+              onChange={(e) => setFollowUpBy(e.target.value)}
+            />
+            <FieldError>{errors.followUpBy}</FieldError>
+          </Field>
         )}
-        {error && <p className="mt-2 text-body text-crisis">{error}</p>}
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button variant="primary" onClick={save} disabled={busy || !summary.trim()}>Save</Button>
-        </div>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={save} disabled={busy}>
+            {busy ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function EscalateModal({
+function EscalateDialog({
+  open,
+  onOpenChange,
   veteranId,
   flagId,
-  onClose,
   onSaved,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   veteranId: string;
   flagId: string | null;
-  onClose: () => void;
   onSaved: () => void;
 }) {
   const [recommended, setRecommended] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function save() {
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch("/api/escalations", {
         method: "POST",
@@ -316,9 +375,12 @@ function EscalateModal({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || "Couldn't escalate");
+        toast.error(j.error || "Couldn't escalate.");
         return;
       }
+      toast.success("Escalated. Clinical lead has been paged.");
+      setRecommended("");
+      onOpenChange(false);
       onSaved();
     } finally {
       setBusy(false);
@@ -326,27 +388,145 @@ function EscalateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-canvas-card p-5 shadow-soft">
-        <h2 className="text-body-lg font-semibold text-ink-primary">Escalate to Clinical Lead</h2>
-        <p className="mt-1 text-caption text-ink-tertiary">
-          The on-call clinical lead will be paged immediately.
-        </p>
-        <label className="mt-3 block">
-          <span className="text-caption text-ink-secondary">Recommended action (optional)</span>
-          <textarea
-            className="mt-1 w-full rounded-md border border-border bg-canvas-card p-2 text-body"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Escalate to Clinical Lead</DialogTitle>
+          <DialogDescription>
+            The on-call clinical lead will be paged immediately via email and push.
+          </DialogDescription>
+        </DialogHeader>
+        <Field>
+          <FieldLabel optional>Recommended action</FieldLabel>
+          <Textarea
             rows={3}
             value={recommended}
             onChange={(e) => setRecommended(e.target.value)}
+            placeholder="What would help the clinical lead jump in fast?"
           />
-        </label>
-        {error && <p className="mt-2 text-body text-crisis">{error}</p>}
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button variant="primary" onClick={save} disabled={busy}>Escalate</Button>
-        </div>
-      </div>
-    </div>
+        </Field>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={save} disabled={busy}>
+            {busy ? "Escalating…" : "Escalate"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const RESOLVE_OPTIONS = [
+  {
+    value: "contacted" as const,
+    label: "Contacted the veteran",
+    description: "You reached them and the issue is addressed.",
+  },
+  {
+    value: "escalated" as const,
+    label: "Escalated to Clinical Lead",
+    description: "Already paged the clinical lead — no further coordinator action needed.",
+  },
+  {
+    value: "false_positive" as const,
+    label: "False positive",
+    description: "The signal was real but, in context, no outreach was needed.",
+  },
+  {
+    value: "deferred" as const,
+    label: "Deferred",
+    description: "Not urgent — will revisit at the next check-in.",
+  },
+];
+
+type ResolveOutcome = (typeof RESOLVE_OPTIONS)[number]["value"];
+
+function ResolveDialog({
+  open,
+  onOpenChange,
+  flagId,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  flagId: string | null;
+  onSaved: () => void;
+}) {
+  const [outcome, setOutcome] = useState<ResolveOutcome | null>(null);
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (!flagId || !outcome) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/flags/${flagId}/resolve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({ outcome, notes: notes.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error || "Couldn't resolve the flag.");
+        return;
+      }
+      toast.success("Flag resolved.");
+      setOutcome(null);
+      setNotes("");
+      onOpenChange(false);
+      onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) {
+          setOutcome(null);
+          setNotes("");
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Resolve flag</DialogTitle>
+          <DialogDescription>
+            Resolved flags drop off the queue. Pick what happened so the engine learns.
+          </DialogDescription>
+        </DialogHeader>
+        <RadioGroup<ResolveOutcome>
+          name="resolve-outcome"
+          options={RESOLVE_OPTIONS}
+          value={outcome}
+          onChange={setOutcome}
+        />
+        <Field>
+          <FieldLabel optional>Notes</FieldLabel>
+          <Textarea
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Anything the next coordinator should know."
+          />
+        </Field>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={save} disabled={busy || !outcome}>
+            {busy ? "Resolving…" : "Resolve"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

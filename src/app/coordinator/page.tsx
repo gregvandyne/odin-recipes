@@ -1,9 +1,11 @@
 import { TriageQueueItem } from "@/components/sentinel/triage-queue-item";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { RiskLevel } from "@/lib/risk/types";
 import { auth } from "@/lib/auth/config";
 import { withTenant } from "@/lib/db/tenant-context";
 import { redirect } from "next/navigation";
 import { QueueLiveClient } from "./queue-live-client";
+import { Inbox } from "lucide-react";
 
 interface QueueItem {
   veteranId: string;
@@ -151,12 +153,18 @@ export default async function CoordinatorQueue() {
       <QueueLiveClient />
 
       {sorted.length === 0 ? (
-        <div className="rounded-lg border border-border bg-canvas-card p-8 text-center text-body text-ink-secondary">
-          Nothing in your queue right now. Check back when a new flag arrives — this page will
-          update live.
-        </div>
+        <EmptyState
+          icon={<Inbox className="h-5 w-5" aria-hidden />}
+          title="Your queue is clear."
+          description="Nothing needs your attention right now. New flags will appear here live — no refresh needed."
+        />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-canvas-card shadow-soft">
+        <div
+          id="main"
+          className="overflow-hidden rounded-lg border border-border bg-canvas-card shadow-soft"
+          role="list"
+          aria-label="Triage queue"
+        >
           {sorted.map((item, i) => (
             <TriageQueueItem
               key={item.flagId}
@@ -167,6 +175,7 @@ export default async function CoordinatorQueue() {
               flagSummary={item.flagSummary}
               recommendedAction={item.recommendedAction}
               flaggedAt={item.flaggedAt}
+              acknowledged={item.acknowledged}
               isFocused={i === 0}
               slaHours={SLA_HOURS_BY_LEVEL[item.riskLevel]}
             />

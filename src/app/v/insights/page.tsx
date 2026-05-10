@@ -98,10 +98,12 @@ export default async function VeteranInsightsPage() {
       </header>
 
       {rows.length === 0 && (
-        <p className="text-body text-ink-secondary">
-          You haven't done a check-in yet. Once you do, this is where you can see what your
-          coordinator sees.
-        </p>
+        <div className="rounded-lg border border-border bg-canvas-card px-6 py-10 text-center">
+          <p className="text-body text-ink-secondary">
+            You haven't done a check-in yet. Once you do, this is where you'll see what your
+            coordinator sees — in plain language.
+          </p>
+        </div>
       )}
 
       <div className="space-y-3">

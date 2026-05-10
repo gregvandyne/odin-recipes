@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/sentinel/theme-provider";
 import { Toaster } from "@/components/ui/toast";
+import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
 import { ServiceWorkerRegistrar } from "@/components/sentinel/sw-register";
 
 export const metadata: Metadata = {
@@ -34,8 +35,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-canvas-card focus:px-4 focus:py-2 focus:text-body focus:font-semibold focus:text-ink-primary focus:shadow-soft focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            Skip to main content
+          </a>
           {children}
           <Toaster />
+          <ConfirmDialogHost />
           <ServiceWorkerRegistrar />
         </ThemeProvider>
       </body>

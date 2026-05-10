@@ -4,6 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field, FieldLabel, Textarea } from "@/components/ui/field";
+import { confirm } from "@/components/ui/confirm-dialog";
+import { toast } from "@/components/ui/toast";
 
 interface Props {
   escalationId: string;
@@ -39,23 +50,45 @@ export function ClinicalActions({ escalationId, status, isMine, veteranId }: Pro
   async function claim() {
     setBusy(true);
     try {
-      await fetch(`/api/escalations/${escalationId}/claim`, { method: "POST" });
-      router.refresh();
+      const res = await fetch(`/api/escalations/${escalationId}/claim`, { method: "POST" });
+      if (res.ok) {
+        toast.success("You've taken this case.");
+        router.refresh();
+      } else if (res.status === 409) {
+        toast.message("Another clinician already claimed this one.");
+        router.refresh();
+      } else {
+        toast.error("Couldn't claim — try again.");
+      }
     } finally {
       setBusy(false);
     }
   }
 
   async function transition(to: "ACTIONED" | "CLOSED") {
-    if (!confirm(`Mark this escalation as ${to.toLowerCase()}?`)) return;
+    const ok = await confirm({
+      title: to === "CLOSED" ? "Close this escalation?" : "Mark this escalation as actioned?",
+      body:
+        to === "CLOSED"
+          ? "Closing removes it from the active queue. The audit trail stays."
+          : "Actioned means clinical guidance has been delivered. The case will stay until closed.",
+      confirmLabel: to === "CLOSED" ? "Close" : "Mark actioned",
+      tone: to === "CLOSED" ? "destructive" : "primary",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
-      await fetch(`/api/escalations/${escalationId}/transition`, {
+      const res = await fetch(`/api/escalations/${escalationId}/transition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to }),
       });
-      router.refresh();
+      if (res.ok) {
+        toast.success(to === "CLOSED" ? "Escalation closed." : "Marked actioned.");
+        router.refresh();
+      } else {
+        toast.error("Couldn't update — try again.");
+      }
     } finally {
       setBusy(false);
     }
@@ -64,9 +97,9 @@ export function ClinicalActions({ escalationId, status, isMine, veteranId }: Pro
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <Link href={`/coordinator/veteran/${veteranId}`} className="inline-flex">
-          <Button variant="primary">Open clinical view</Button>
-        </Link>
+        <Button asChild variant="primary">
+          <Link href={`/coordinator/veteran/${veteranId}`}>Open clinical view</Link>
+        </Button>
         {!isMine && status === "PENDING" && (
           <Button variant="secondary" onClick={claim} disabled={busy}>
             Take it
@@ -90,37 +123,33 @@ export function ClinicalActions({ escalationId, status, isMine, veteranId }: Pro
           </>
         )}
       </div>
-      {notesOpen && (
-        <NotesModal
-          escalationId={escalationId}
-          onClose={() => setNotesOpen(false)}
-          onSaved={() => {
-            setNotesOpen(false);
-            router.refresh();
-          }}
-        />
-      )}
+      <NotesDialog
+        open={notesOpen}
+        onOpenChange={setNotesOpen}
+        escalationId={escalationId}
+        onSaved={() => router.refresh()}
+      />
     </>
   );
 }
 
-function NotesModal({
+function NotesDialog({
+  open,
+  onOpenChange,
   escalationId,
-  onClose,
   onSaved,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   escalationId: string;
-  onClose: () => void;
   onSaved: () => void;
 }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function save() {
     if (!notes.trim()) return;
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch(`/api/escalations/${escalationId}/notes`, {
         method: "POST",
@@ -129,9 +158,12 @@ function NotesModal({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || "Couldn't save");
+        toast.error(j.error || "Couldn't save notes.");
         return;
       }
+      toast.success("Notes saved (encrypted).");
+      setNotes("");
+      onOpenChange(false);
       onSaved();
     } finally {
       setBusy(false);
@@ -139,26 +171,36 @@ function NotesModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-canvas-card p-5 shadow-soft">
-        <h2 className="text-body-lg font-semibold text-ink-primary">Add consult notes</h2>
-        <p className="mt-1 text-caption text-ink-tertiary">Encrypted at rest.</p>
-        <textarea
-          rows={6}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className="mt-3 w-full rounded-md border border-border bg-canvas-card p-2 text-body"
-        />
-        {error && <p className="mt-2 text-body text-crisis">{error}</p>}
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) setNotes("");
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add consult notes</DialogTitle>
+          <DialogDescription>Encrypted at rest. Append-only — to amend, post a new note.</DialogDescription>
+        </DialogHeader>
+        <Field>
+          <FieldLabel>Notes</FieldLabel>
+          <Textarea
+            rows={6}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Clinical context, recommended action, follow-up plan."
+          />
+        </Field>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
           <Button variant="primary" onClick={save} disabled={busy || !notes.trim()}>
-            Save
+            {busy ? "Saving…" : "Save"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

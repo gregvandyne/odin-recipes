@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/toast";
 import { RiskBadge } from "@/components/sentinel/risk-badge";
 import { MessageBubble } from "@/components/sentinel/message-bubble";
 import { MessageComposer } from "@/components/sentinel/message-composer";
@@ -27,9 +28,33 @@ export default function CoordinatorThread({ params }: { params: { id: string } }
   }
 
   async function requestDraft(): Promise<string> {
-    // POST /api/messages/draft in production. The server pulls recent context,
-    // calls Claude, returns the draft. The coordinator reviews before sending.
-    return "Glad Thursday works. I blocked 2:00 — does the VA campus or video work better for you?";
+    // Calls the real draft API. The server pulls recent context (last 4
+    // weeks of check-ins + last 10 messages), invokes Claude with a default
+    // coordinator intent, returns a draft. The coordinator always reviews
+    // before sending — the AI does NOT speak directly to veterans.
+    try {
+      const res = await fetch("/api/messages/draft", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({
+          threadId: params.id,
+          coordinatorIntent:
+            "Acknowledge what they shared specifically. Offer one concrete next step. No pressure.",
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.draft) {
+        toast.error(j.error || "AI-assist isn't available right now.");
+        return "";
+      }
+      return j.draft;
+    } catch {
+      toast.error("Network error reaching AI-assist.");
+      return "";
+    }
   }
 
   return (

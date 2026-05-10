@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
 
 interface Props {
   checkInId: string;
@@ -25,7 +28,7 @@ export function DisagreeButton({ checkInId }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 text-caption text-ink-tertiary underline-offset-4 hover:underline"
+        className="mt-3 rounded text-caption text-ink-tertiary underline-offset-4 hover:text-ink-secondary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         This isn't the full picture
       </button>
@@ -44,7 +47,12 @@ export function DisagreeButton({ checkInId }: Props) {
         },
         body: JSON.stringify({ body: text }),
       });
-      if (res.ok) setDone(true);
+      if (res.ok) {
+        toast.success("Sent. Your coordinator will see this before next outreach.");
+        setDone(true);
+      } else {
+        toast.error("Couldn't send — please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -52,32 +60,31 @@ export function DisagreeButton({ checkInId }: Props) {
 
   return (
     <div className="mt-3 space-y-2">
-      <textarea
+      <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={3}
         placeholder="Tell your coordinator what you'd want them to know."
-        className="w-full rounded-md border border-border bg-canvas-card p-3 text-body text-ink-primary"
       />
       <div className="flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={submit}
           disabled={submitting || text.trim().length === 0}
-          className="h-9 rounded-md bg-primary px-4 text-body text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
         >
           {submitting ? "Sending…" : "Send"}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => {
             setOpen(false);
             setText("");
           }}
-          className="h-9 px-3 text-body text-ink-tertiary hover:underline"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

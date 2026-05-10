@@ -3,7 +3,8 @@ import { RiskBadge } from "@/components/sentinel/risk-badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Clock, ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { withTenant } from "@/lib/db/tenant-context";
 import { ClinicalActions } from "./clinical-actions";
@@ -77,9 +78,11 @@ export default async function ClinicalEscalations() {
       </header>
 
       {escalations.length === 0 && (
-        <p className="rounded-lg border border-border bg-canvas-card p-8 text-center text-body text-ink-secondary">
-          No active escalations.
-        </p>
+        <EmptyState
+          icon={<ShieldCheck className="h-5 w-5" aria-hidden />}
+          title="Nothing on the clinical desk."
+          description="When a coordinator escalates a case to you, it'll show up here in real time."
+        />
       )}
 
       <div className="space-y-3">
