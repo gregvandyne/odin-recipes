@@ -43,6 +43,7 @@ import {
   QUEUE_NOTIFICATIONS,
   type NotificationJob,
 } from "@/lib/queue/queues";
+import { withErrorTracking } from "@/lib/observability/sentry";
 import { Resend } from "resend";
 
 let _resend: Resend | null = null;
@@ -59,7 +60,12 @@ export function buildNotificationWorker(): Worker | null {
   if (!connection) return null;
   return new Worker<NotificationJob>(
     QUEUE_NOTIFICATIONS,
-    async (job) => runNotificationJob(job),
+    async (job) =>
+      withErrorTracking("worker.notification", () => runNotificationJob(job), {
+        jobId: job.id,
+        notificationId: job.data.notificationId,
+        attempt: job.attemptsMade + 1,
+      }),
     {
       connection,
       concurrency: Number(process.env.NOTIFICATION_CONCURRENCY ?? 8),

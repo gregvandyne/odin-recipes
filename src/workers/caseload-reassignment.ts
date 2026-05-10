@@ -18,13 +18,18 @@ import {
   type CaseloadReassignmentJob,
   enqueueNotification,
 } from "@/lib/queue/queues";
+import { withErrorTracking } from "@/lib/observability/sentry";
 
 export function buildCaseloadReassignmentWorker(): Worker | null {
   const connection = buildQueueConnection();
   if (!connection) return null;
   return new Worker<CaseloadReassignmentJob>(
     QUEUE_CASELOAD_REASSIGNMENT,
-    async (job) => runReassignmentJob(job),
+    async (job) =>
+      withErrorTracking("worker.caseload-reassignment", () => runReassignmentJob(job), {
+        jobId: job.id,
+        reassignmentId: job.data?.reassignmentId,
+      }),
     { connection, concurrency: 1 },
   );
 }

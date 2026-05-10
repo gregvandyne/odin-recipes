@@ -18,7 +18,14 @@ import IORedis, { type Redis } from "ioredis";
 import { logger } from "@/lib/logging/log";
 
 export interface RealtimeEvent {
-  kind: "flag.created" | "flag.acknowledged" | "flag.resolved" | "escalation.created" | "escalation.transitioned";
+  kind:
+    | "flag.created"
+    | "flag.acknowledged"
+    | "flag.resolved"
+    | "escalation.created"
+    | "escalation.transitioned"
+    | "message.created"
+    | "message.read";
   organizationId: string;
   payload: Record<string, unknown>;
   emittedAt: string;

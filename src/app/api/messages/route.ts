@@ -17,6 +17,7 @@ import { withAuth } from "@/lib/security/api-auth";
 import { encryptField, messageAad } from "@/lib/security/encryption";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { withIdempotency } from "@/lib/idempotency/with-idempotency";
+import { publishEvent } from "@/lib/realtime/pubsub";
 
 const Body = z.object({
   threadId: z.string().uuid(),
@@ -114,8 +115,23 @@ export const POST = withAuth(
         case "archived": return { status: 410, payload: { error: "thread archived" }, skipCache: true };
         case "forbidden": return { status: 403, payload: { error: "not a participant" }, skipCache: true };
         case "badAiFlag": return { status: 400, payload: { error: "ai-assisted only for coordinator messages" }, skipCache: true };
-        case "ok":
+        case "ok": {
+          // Publish a realtime event so the other participant's open thread
+          // refreshes without polling. Best-effort — durability is the DB
+          // row itself.
+          void publishEvent(`sentinel:thread:${organizationId}:${threadId}`, {
+            kind: "message.created",
+            organizationId,
+            payload: {
+              messageId: result.messageId,
+              threadId,
+              senderId: ctx.userId,
+              sentAt: result.sentAt,
+            },
+            emittedAt: new Date().toISOString(),
+          });
           return { status: 201, payload: { messageId: result.messageId, sentAt: result.sentAt } };
+        }
       }
     });
   },

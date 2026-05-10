@@ -22,6 +22,7 @@ import {
   registerDataRetention,
 } from "@/lib/queue/queues";
 import { writeHeartbeat } from "@/lib/observability/heartbeat";
+import { flushTracking } from "@/lib/observability/sentry";
 import { buildLanguageAnalysisWorker, markLanguageAnalysisFailed } from "./language-analysis";
 import { buildCheckinInviteWorker } from "./checkin-invite-cron";
 import { buildNotificationWorker } from "./notification";
@@ -118,6 +119,8 @@ async function main(): Promise<void> {
     logger.info({ signal }, "worker shutdown");
     clearInterval(heartbeat);
     await Promise.allSettled(Object.values(workers).map((w) => w!.close()));
+    // Give Sentry up to 2s to flush any buffered events before exit.
+    await flushTracking(2000);
     process.exit(0);
   };
   process.on("SIGTERM", () => void shutdown("SIGTERM"));

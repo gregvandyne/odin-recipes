@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOnline } from "@/lib/hooks/use-online";
 
 interface Props {
   threadId: string;
@@ -16,6 +17,7 @@ export function MessageComposer({ threadId, showDraftAssist, onSend, onRequestDr
   const [body, setBody] = useState("");
   const [pending, startTransition] = useTransition();
   const [draftLabel, setDraftLabel] = useState<"AI-assisted draft" | null>(null);
+  const online = useOnline();
 
   function send() {
     const text = body.trim();
@@ -42,6 +44,14 @@ export function MessageComposer({ threadId, showDraftAssist, onSend, onRequestDr
       {draftLabel && (
         <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-caption text-primary">
           <Sparkles className="h-3 w-3" aria-hidden /> {draftLabel} · review before sending
+        </div>
+      )}
+      {!online && (
+        <div
+          role="status"
+          className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-risk-orange/30 bg-risk-orange/5 px-2 py-0.5 text-caption text-risk-orange"
+        >
+          <WifiOff className="h-3 w-3" aria-hidden /> Offline. We'll send this when you're back.
         </div>
       )}
       <div className="flex items-end gap-2">

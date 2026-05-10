@@ -20,6 +20,7 @@ import { withCorrelation } from "@/lib/logging/log";
 import { withTenant } from "@/lib/db/tenant-context";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { getRedis, buildQueueConnection } from "@/lib/queue/redis";
+import { withErrorTracking } from "@/lib/observability/sentry";
 import {
   QUEUE_SLA_MONITOR,
   type SlaMonitorJob,
@@ -35,7 +36,10 @@ export function buildSlaMonitorWorker(): Worker | null {
   if (!connection) return null;
   return new Worker<SlaMonitorJob>(
     QUEUE_SLA_MONITOR,
-    async (job) => runSlaMonitorSweep(job),
+    async (job) =>
+      withErrorTracking("worker.sla-monitor", () => runSlaMonitorSweep(job), {
+        jobId: job.id,
+      }),
     { connection, concurrency: 1 },
   );
 }

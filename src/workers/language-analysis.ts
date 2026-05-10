@@ -26,6 +26,7 @@ import type { CheckInRecord, CheckInResponse, LanguageAnalysis } from "@/lib/ris
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { dispatchFlagNotifications } from "@/lib/notifications/dispatch";
 import { withCorrelation } from "@/lib/logging/log";
+import { withErrorTracking } from "@/lib/observability/sentry";
 import { buildQueueConnection } from "@/lib/queue/redis";
 import {
   QUEUE_LANGUAGE_ANALYSIS,
@@ -38,7 +39,12 @@ export function buildLanguageAnalysisWorker(): Worker | null {
 
   return new Worker<LanguageAnalysisJob>(
     QUEUE_LANGUAGE_ANALYSIS,
-    async (job) => runLanguageAnalysisJob(job),
+    async (job) =>
+      withErrorTracking("worker.language-analysis", () => runLanguageAnalysisJob(job), {
+        jobId: job.id,
+        checkInId: job.data?.checkInId,
+        attempt: job.attemptsMade + 1,
+      }),
     {
       connection,
       // Concurrency: AI is the slow path; keep it modest so a burst doesn't

@@ -21,6 +21,7 @@ import { withCorrelation } from "@/lib/logging/log";
 import { withTenant } from "@/lib/db/tenant-context";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { buildQueueConnection } from "@/lib/queue/redis";
+import { withErrorTracking } from "@/lib/observability/sentry";
 import {
   QUEUE_DATA_RETENTION,
   type DataRetentionJob,
@@ -42,7 +43,10 @@ export function buildDataRetentionWorker(): Worker | null {
   if (!connection) return null;
   return new Worker<DataRetentionJob>(
     QUEUE_DATA_RETENTION,
-    async (job) => runRetentionSweep(job),
+    async (job) =>
+      withErrorTracking("worker.data-retention", () => runRetentionSweep(job), {
+        jobId: job.id,
+      }),
     { connection, concurrency: 1 },
   );
 }
