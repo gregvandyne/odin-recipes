@@ -43,6 +43,7 @@ interface ContactInput {
 }
 
 export interface VeteranNarrativeRow {
+  checkInId: string;
   weekNumber: number;
   submittedAt: Date;
   prose: string;
@@ -83,6 +84,7 @@ export function buildVeteranNarrative(args: {
       : null;
 
     return {
+      checkInId: c.id,
       weekNumber: c.weekNumber,
       submittedAt: c.submittedAt,
       prose,

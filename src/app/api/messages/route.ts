@@ -6,14 +6,17 @@
  *   - Coordinator can only post in threads where they are assigned.
  *   - Clinical Lead read access is granted only during active escalation; they
  *     do not post via this endpoint.
+ *
+ * Idempotent: clients may send `Idempotency-Key`. A retry with the same body
+ * replays the prior response instead of creating a duplicate Message row.
  */
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
 import { withTenant } from "@/lib/db/tenant-context";
 import { withAuth } from "@/lib/security/api-auth";
 import { encryptField, messageAad } from "@/lib/security/encryption";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
+import { withIdempotency } from "@/lib/idempotency/with-idempotency";
 
 const Body = z.object({
   threadId: z.string().uuid(),
@@ -24,85 +27,97 @@ const Body = z.object({
 
 export const POST = withAuth(
   async (req, ctx) => {
-    const parsed = Body.safeParse(await req.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: "invalid body", issues: parsed.error.issues }, { status: 400 });
-    }
-
     if (!ctx.organizationId) {
       return NextResponse.json({ error: "no tenant" }, { status: 403 });
     }
+    const organizationId = ctx.organizationId;
 
-    const { threadId, body, aiAssistedDraft, aiPromptVersion } = parsed.data;
+    return withIdempotency(req, ctx, "/api/messages", async (bodyText) => {
+      let parsed: z.infer<typeof Body>;
+      try {
+        parsed = Body.parse(JSON.parse(bodyText));
+      } catch (err) {
+        const issues = err instanceof z.ZodError ? err.issues : undefined;
+        return { status: 400, payload: { error: "invalid body", issues }, skipCache: true };
+      }
+      const { threadId, body, aiAssistedDraft, aiPromptVersion } = parsed;
 
-    const result = await withTenant(
-      { organizationId: ctx.organizationId, userId: ctx.userId, userRole: ctx.role, isOrgAdmin: ctx.isOrgAdmin },
-      async (tx) => {
-        const thread = await tx.messageThread.findUnique({
-          where: { id: threadId },
-          select: { id: true, veteranId: true, coordinatorId: true, organizationId: true, status: true },
-        });
-        if (!thread || thread.organizationId !== ctx.organizationId) {
-          return { status: 404, error: "thread not found" };
-        }
-        if (thread.status === "ARCHIVED") {
-          return { status: 410, error: "thread archived" };
-        }
+      const result = await withTenant(
+        { organizationId, userId: ctx.userId, userRole: ctx.role, isOrgAdmin: ctx.isOrgAdmin },
+        async (tx) => {
+          const thread = await tx.messageThread.findUnique({
+            where: { id: threadId },
+            select: { id: true, veteranId: true, coordinatorId: true, organizationId: true, status: true },
+          });
+          if (!thread || thread.organizationId !== organizationId) {
+            return { kind: "notFound" as const };
+          }
+          if (thread.status === "ARCHIVED") return { kind: "archived" as const };
 
-        const senderRole =
-          thread.veteranId === ctx.userId ? "VETERAN" :
-          thread.coordinatorId === ctx.userId ? "COORDINATOR" : null;
-        if (!senderRole) return { status: 403, error: "not a participant" };
+          const senderRole =
+            thread.veteranId === ctx.userId ? "VETERAN" :
+            thread.coordinatorId === ctx.userId ? "COORDINATOR" : null;
+          if (!senderRole) return { kind: "forbidden" as const };
 
-        // Coordinators cannot use the AI-draft flag without the corresponding role.
-        if (aiAssistedDraft && senderRole !== "COORDINATOR") {
-          return { status: 400, error: "ai-assisted only for coordinator messages" };
-        }
+          if (aiAssistedDraft && senderRole !== "COORDINATOR") {
+            return { kind: "badAiFlag" as const };
+          }
 
-        // Reserve an id so we can bind it into the AAD before encrypting.
-        const messageId = crypto.randomUUID();
-        const aad = messageAad(ctx.organizationId!, threadId, messageId);
-        const cipher = encryptField(body, aad);
+          const messageId = crypto.randomUUID();
+          const aad = messageAad(organizationId, threadId, messageId);
+          const cipher = encryptField(body, aad);
 
-        const created = await tx.message.create({
-          data: {
-            id: messageId,
-            organizationId: ctx.organizationId!,
-            threadId,
-            senderId: ctx.userId,
-            senderRole,
-            bodyEncrypted: cipher,
-            aiAssistedDraft: !!aiAssistedDraft,
-            aiPromptVersion: aiPromptVersion ?? null,
-          },
-        });
+          const created = await tx.message.create({
+            data: {
+              id: messageId,
+              organizationId,
+              threadId,
+              senderId: ctx.userId,
+              senderRole,
+              bodyEncrypted: cipher,
+              aiAssistedDraft: !!aiAssistedDraft,
+              aiPromptVersion: aiPromptVersion ?? null,
+            },
+          });
 
-        await tx.messageThread.update({
-          where: { id: threadId },
-          data: { lastMessageAt: created.sentAt },
-        });
+          await tx.messageThread.update({
+            where: { id: threadId },
+            data: { lastMessageAt: created.sentAt },
+          });
 
-        await logAudit(
-          {
-            organizationId: ctx.organizationId,
-            actorId: ctx.userId,
-            actorRole: ctx.role,
-            action: AUDIT_ACTIONS.MESSAGE_SEND,
-            resourceType: "Message",
-            resourceId: messageId,
-            ipAddress: ctx.ipAddress,
-            userAgent: ctx.userAgent,
-            metadata: { threadId, aiAssistedDraft: !!aiAssistedDraft },
-          },
-          tx,
-        );
+          await logAudit(
+            {
+              organizationId,
+              actorId: ctx.userId,
+              actorRole: ctx.role,
+              action: AUDIT_ACTIONS.MESSAGE_SEND,
+              resourceType: "Message",
+              resourceId: messageId,
+              ipAddress: ctx.ipAddress,
+              userAgent: ctx.userAgent,
+              correlationId: ctx.correlationId,
+              metadata: { threadId, aiAssistedDraft: !!aiAssistedDraft },
+            },
+            tx,
+          );
 
-        return { status: 201, messageId, sentAt: created.sentAt.toISOString() };
-      },
-    );
+          return {
+            kind: "ok" as const,
+            messageId,
+            sentAt: created.sentAt.toISOString(),
+          };
+        },
+      );
 
-    if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
-    return NextResponse.json(result, { status: 201 });
+      switch (result.kind) {
+        case "notFound": return { status: 404, payload: { error: "thread not found" }, skipCache: true };
+        case "archived": return { status: 410, payload: { error: "thread archived" }, skipCache: true };
+        case "forbidden": return { status: 403, payload: { error: "not a participant" }, skipCache: true };
+        case "badAiFlag": return { status: 400, payload: { error: "ai-assisted only for coordinator messages" }, skipCache: true };
+        case "ok":
+          return { status: 201, payload: { messageId: result.messageId, sentAt: result.sentAt } };
+      }
+    });
   },
   { rateLimit: "api.message" },
 );

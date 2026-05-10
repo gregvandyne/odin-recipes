@@ -68,13 +68,50 @@ Pages that work without authentication (sample data only — these are what you'
 - `/clinical` — escalation queue
 - `/admin` — program manager dashboard
 
+## Background work: BullMQ worker + Redis
+
+Phase 1 moved the layer-4 AI analysis off the request path into a BullMQ
+worker. Production deploys need a Redis instance and one of two ways to run
+the worker:
+
+### Required env vars
+
+- `REDIS_URL` — any Redis 6+ URL. Upstash Redis works on Vercel.
+- `CRON_SECRET` — a random string used to authenticate the HTTP cron path
+  (`openssl rand -base64 32`). Required when relying on Vercel Cron.
+- `ANTHROPIC_API_KEY` — language analysis. Optional; layers 1/2/3/5 still run
+  without it, and the coordinator UI surfaces a "language analysis
+  unavailable — review the open-ended response manually" banner when missing.
+
+### Option A — long-running worker container (recommended for production)
+
+Run `npm run worker` on a small always-on host (Railway, Render, Fly,
+Heroku, Docker on your own VM). The worker:
+
+- handles `language-analysis` jobs (3 retries with 1s/5s/25s backoff;
+  exhaustion sets `aiAnalysisFailedAt` on the check-in)
+- handles `notifications` (email/push fan-out)
+- registers the hourly check-in invitation sweep as a BullMQ repeatable
+
+### Option B — Vercel Cron (no separate worker)
+
+If you don't want a second host, `vercel.json` already registers
+`/api/cron/checkin-invites` as an hourly cron. The endpoint runs the same
+sweep logic as the worker. **Layer-4 AI analysis still requires Option A**,
+since BullMQ-managed retries need the persistent worker. Without it, AI
+analysis is silently skipped and the coordinator banner surfaces every time.
+
+## Health checks
+
+- `GET /api/healthz` — liveness. Returns 200 whenever the Node process is up.
+- `GET /api/readyz` — readiness. Probes Postgres + Redis. Returns 503 if any
+  dependency is down. Use this for load-balancer health checks.
+
 ## What still needs wiring before this is a live, end-to-end product
 
 - **Email provider** — magic-link auth needs an SMTP/transactional email integration (Resend, Postmark, SES). Without it, you can't actually log in.
-- **Anthropic API key** — `ANTHROPIC_API_KEY` env var enables layer-4 language analysis on check-ins. Optional; the deterministic risk layers (1, 2, 3, 5) work without it.
-- **Notification queue** — BullMQ + Redis (Upstash on Vercel works) for the fan-out workers.
 - **Real seed data** — the seed script populates the canonical question bank only; an org, cohort, and synthetic veterans are manual today.
 
 ## Cost
 
-Free tier all the way. Vercel hobby + Neon free + (optional) Upstash free covers everything for a phone-demo level of use.
+Free tier all the way. Vercel hobby + Neon free + Upstash free covers everything for a phone-demo level of use, except the long-running worker (Render/Fly/Railway free tier covers that).

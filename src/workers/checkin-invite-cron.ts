@@ -11,6 +11,8 @@
 
 import { Worker, type Job } from "bullmq";
 import { prisma } from "@/lib/db/prisma";
+import { withTenant } from "@/lib/db/tenant-context";
+import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { withCorrelation } from "@/lib/logging/log";
 import { localDayOfWeek, localHourOfDay, currentWeekNumber } from "@/lib/program/week";
 import { buildQueueConnection } from "@/lib/queue/redis";
@@ -25,32 +27,40 @@ export function buildCheckinInviteWorker(): Worker | null {
 
   return new Worker<CheckinInviteSweepJob>(
     QUEUE_CHECKIN_INVITES,
-    async (job) => runCheckinInviteSweep(job),
+    async (job) => runCheckinInviteSweep(job.data),
     { connection, concurrency: 1 },
   );
 }
 
-export async function runCheckinInviteSweep(job: Job<CheckinInviteSweepJob>): Promise<void> {
-  const log = withCorrelation(job.data.correlationId, {
+export async function runCheckinInviteSweep(
+  payload: CheckinInviteSweepJob,
+): Promise<{ candidatesScanned: number; invitesDispatched: number }> {
+  const log = withCorrelation(payload.correlationId, {
     component: "worker.checkin-invite-sweep",
   });
   const now = new Date();
   log.info("starting invitation sweep");
 
-  // Pull all active veterans with their tz preferences. RLS is bypassed here
-  // because this is a system-level cron job; we still scope every operation
-  // by organizationId on writes.
-  const veterans = await prisma.veteranProfile.findMany({
-    where: { status: "ACTIVE" },
-    select: {
-      userId: true,
-      organizationId: true,
-      timezone: true,
-      checkInDayOfWeek: true,
-      checkInLocalTime: true,
-      programStartDate: true,
-      programEndDate: true,
-    },
+  // System-level scan. RLS is bypassed by setting app.is_super_admin=true
+  // for the duration of this read, so we can find candidate veterans across
+  // all tenants in one pass. Each subsequent write happens in a tenant-scoped
+  // transaction.
+  const veterans = await prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      `SELECT set_config('app.is_super_admin', 'true', true), set_config('app.organization_id', '', true)`,
+    );
+    return tx.veteranProfile.findMany({
+      where: { status: "ACTIVE" },
+      select: {
+        userId: true,
+        organizationId: true,
+        timezone: true,
+        checkInDayOfWeek: true,
+        checkInLocalTime: true,
+        programStartDate: true,
+        programEndDate: true,
+      },
+    });
   });
 
   let invitesDispatched = 0;
@@ -66,40 +76,76 @@ export async function runCheckinInviteSweep(job: Job<CheckinInviteSweepJob>): Pr
     if (localHour !== targetHour) continue;
 
     const week = currentWeekNumber(v.programStartDate, now, tz);
-
-    // Already submitted this week?
-    const submitted = await prisma.checkIn.count({
-      where: { veteranId: v.userId, weekNumber: week },
-    });
-    if (submitted > 0) continue;
-
-    // Already invited today?
     const startOfDayLocalIso = startOfLocalDay(now, tz);
-    const alreadyInvitedToday = await prisma.notification.count({
-      where: {
-        recipientUserId: v.userId,
-        category: "WEEKLY_CHECKIN_INVITE",
-        queuedAt: { gte: startOfDayLocalIso },
-      },
-    });
-    if (alreadyInvitedToday > 0) continue;
 
-    await prisma.notification.create({
-      data: {
+    // All veteran-specific writes happen in the veteran's tenant context so
+    // the RLS policy and any per-tenant audit hooks apply correctly.
+    const dispatched = await withTenant(
+      {
         organizationId: v.organizationId,
-        recipientUserId: v.userId,
-        category: "WEEKLY_CHECKIN_INVITE",
-        channel: "EMAIL",
-        subject: "Your weekly check-in is ready",
-        bodyTemplateId: "weekly-checkin-invite-v1",
-        relatedResourceType: "VeteranProfile",
-        relatedResourceId: v.userId,
+        userId: v.userId,
+        userRole: "SYSTEM",
+        isOrgAdmin: false,
       },
-    });
-    invitesDispatched += 1;
+      async (tx) => {
+        const submitted = await tx.checkIn.count({
+          where: { veteranId: v.userId, weekNumber: week },
+        });
+        if (submitted > 0) return false;
+
+        const alreadyInvitedToday = await tx.notification.count({
+          where: {
+            recipientUserId: v.userId,
+            category: "WEEKLY_CHECKIN_INVITE",
+            queuedAt: { gte: startOfDayLocalIso },
+          },
+        });
+        if (alreadyInvitedToday > 0) return false;
+
+        await tx.notification.create({
+          data: {
+            organizationId: v.organizationId,
+            recipientUserId: v.userId,
+            category: "WEEKLY_CHECKIN_INVITE",
+            channel: "EMAIL",
+            subject: "Your weekly check-in is ready",
+            bodyTemplateId: "weekly-checkin-invite-v1",
+            relatedResourceType: "VeteranProfile",
+            relatedResourceId: v.userId,
+          },
+        });
+
+        await logAudit(
+          {
+            organizationId: v.organizationId,
+            actorId: null,
+            actorRole: "SYSTEM",
+            action: AUDIT_ACTIONS.INVITE_DISPATCH,
+            resourceType: "Notification",
+            resourceId: v.userId,
+            correlationId: payload.correlationId,
+            metadata: {
+              category: "WEEKLY_CHECKIN_INVITE",
+              weekNumber: week,
+              localHour,
+              localDayOfWeek: localDow,
+              timezone: tz,
+            },
+          },
+          tx,
+        );
+        return true;
+      },
+    );
+
+    if (dispatched) invitesDispatched += 1;
   }
 
-  log.info({ invitesDispatched, candidatesScanned: veterans.length }, "invitation sweep complete");
+  log.info(
+    { invitesDispatched, candidatesScanned: veterans.length },
+    "invitation sweep complete",
+  );
+  return { candidatesScanned: veterans.length, invitesDispatched };
 }
 
 function startOfLocalDay(now: Date, timezone: string): Date {

@@ -51,6 +51,9 @@ export async function logAudit(
 export const AUDIT_ACTIONS = {
   CHECKIN_SUBMIT: "checkin.submit",
   CHECKIN_REVIEW: "checkin.review",
+  CHECKIN_DRAFT_SAVE: "checkin.draft.save",
+  CHECKIN_DRAFT_DISCARD: "checkin.draft.discard",
+  CHECKIN_FEEDBACK: "checkin.feedback",
   FLAG_ACK: "flag.acknowledge",
   FLAG_RESOLVE: "flag.resolve",
   FLAG_OVERRIDE: "flag.severity_override",
@@ -71,4 +74,7 @@ export const AUDIT_ACTIONS = {
   AI_CALL: "ai.call",
   EXPORT_REQUEST: "export.request",
   ELEVATED_ACCESS: "platform.elevated_access",
+  INVITE_DISPATCH: "notification.invite.dispatch",
+  PUSH_SUBSCRIBE: "push.subscribe",
+  CRON_TRIGGER: "cron.trigger",
 } as const;

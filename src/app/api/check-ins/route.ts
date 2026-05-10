@@ -23,13 +23,7 @@ import { score } from "@/lib/risk/engine";
 import type { CheckInRecord, CheckInResponse } from "@/lib/risk/types";
 import { CANONICAL_QUESTIONS } from "@/lib/questions/canonical";
 import { enqueueLanguageAnalysis } from "@/lib/queue/queues";
-import {
-  IDEMPOTENCY_HEADER,
-  hashBody,
-  lookup,
-  readKey,
-  recordResponse,
-} from "@/lib/idempotency/store";
+import { withIdempotency } from "@/lib/idempotency/with-idempotency";
 
 const Body = z.object({
   weekNumber: z.number().int().min(1).max(52),
@@ -54,198 +48,166 @@ export const POST = withAuth(
     const organizationId = ctx.organizationId;
     const userId = ctx.userId;
 
-    const bodyText = await req.text();
-    const idemKey = readKey(req);
-    if (idemKey) {
-      const result = await lookup(ctx, "/api/check-ins", idemKey, bodyText);
-      if (result?.hit) return result.response;
-    }
+    return withIdempotency(req, ctx, "/api/check-ins", async (bodyText) => {
+      let parsed: z.infer<typeof Body>;
+      try {
+        parsed = Body.parse(JSON.parse(bodyText));
+      } catch {
+        return { status: 400, payload: { error: "invalid body" }, skipCache: true };
+      }
 
-    let parsed: z.infer<typeof Body>;
-    try {
-      parsed = Body.parse(JSON.parse(bodyText));
-    } catch {
-      return NextResponse.json({ error: "invalid body" }, { status: 400 });
-    }
+      const { weekNumber, answers, openEndedResponse } = parsed;
+      const cleanedOpenEnded =
+        openEndedResponse && openEndedResponse.trim().length > 0 ? openEndedResponse : null;
 
-    const { weekNumber, answers, openEndedResponse } = parsed;
-    const cleanedOpenEnded = openEndedResponse && openEndedResponse.trim().length > 0
-      ? openEndedResponse
-      : null;
-
-    const responses: CheckInResponse[] = answers.flatMap((a) => {
-      const q = CANONICAL_QUESTIONS.find((q) => q.id === a.questionId);
-      if (!q) return [];
-      return [{
-        questionId: a.questionId,
-        domainCode: q.domainCode,
-        responseType: q.responseType,
-        value: a.value,
-        skipped: a.skipped,
-        weight: q.weight,
-      }];
-    });
-
-    const result = await withTenant(
-      {
-        organizationId,
-        userId,
-        userRole: "VETERAN",
-        isOrgAdmin: false,
-      },
-      async (tx) => {
-        const veteranProfile = await tx.veteranProfile.findUnique({
-          where: { userId },
-          select: { userId: true, organizationId: true },
-        });
-        if (!veteranProfile || veteranProfile.organizationId !== organizationId) {
-          return { status: 403 as const, body: { error: "forbidden" } };
-        }
-
-        const history = await tx.checkIn.findMany({
-          where: { veteranId: userId, organizationId },
-          orderBy: { submittedAt: "desc" },
-          take: 12,
-        });
-
-        const historyForEngine: CheckInRecord[] = history.map((h) => ({
-          id: h.id,
-          weekNumber: h.weekNumber,
-          submittedAt: h.submittedAt,
-          responses: (h.responses as unknown as CheckInResponse[]) ?? [],
-          openEndedResponse: null,
-        }));
-
-        const current: CheckInRecord = {
-          id: "pending",
-          weekNumber,
-          submittedAt: new Date(),
-          responses,
-          openEndedResponse: cleanedOpenEnded,
-        };
-
-        // Layer 4 runs in the worker; engine sees null analysis here.
-        const out = score({
-          current,
-          history: historyForEngine,
-          hoursSinceCheckInWindowOpen: 0,
-          consecutiveMissedWeeks: 0,
-          priorRiskLevel: history[0]?.riskLevel ?? null,
-          languageAnalysis: null,
-        });
-
-        const aiPending = cleanedOpenEnded !== null;
-        const checkIn = await tx.checkIn.create({
-          data: {
-            organizationId,
-            veteranId: userId,
-            weekNumber,
-            responses: responses as unknown as object,
-            openEndedResponse: cleanedOpenEnded,
-            aiPending,
-            riskScore: out.overallScore,
-            riskLevel: out.overallRiskLevel,
-            engineVersion: out.engineVersion,
+      const responses: CheckInResponse[] = answers.flatMap((a) => {
+        const q = CANONICAL_QUESTIONS.find((q) => q.id === a.questionId);
+        if (!q) return [];
+        return [
+          {
+            questionId: a.questionId,
+            domainCode: q.domainCode,
+            responseType: q.responseType,
+            value: a.value,
+            skipped: a.skipped,
+            weight: q.weight,
           },
-        });
+        ];
+      });
 
-        for (const f of out.flags) {
-          await tx.flag.create({
+      const result = await withTenant(
+        { organizationId, userId, userRole: "VETERAN", isOrgAdmin: false },
+        async (tx) => {
+          const veteranProfile = await tx.veteranProfile.findUnique({
+            where: { userId },
+            select: { userId: true, organizationId: true },
+          });
+          if (!veteranProfile || veteranProfile.organizationId !== organizationId) {
+            return { kind: "forbidden" as const };
+          }
+
+          const history = await tx.checkIn.findMany({
+            where: { veteranId: userId, organizationId },
+            orderBy: { submittedAt: "desc" },
+            take: 12,
+          });
+
+          const historyForEngine: CheckInRecord[] = history.map((h) => ({
+            id: h.id,
+            weekNumber: h.weekNumber,
+            submittedAt: h.submittedAt,
+            responses: (h.responses as unknown as CheckInResponse[]) ?? [],
+            openEndedResponse: null,
+          }));
+
+          const current: CheckInRecord = {
+            id: "pending",
+            weekNumber,
+            submittedAt: new Date(),
+            responses,
+            openEndedResponse: cleanedOpenEnded,
+          };
+
+          const out = score({
+            current,
+            history: historyForEngine,
+            hoursSinceCheckInWindowOpen: 0,
+            consecutiveMissedWeeks: 0,
+            priorRiskLevel: history[0]?.riskLevel ?? null,
+            languageAnalysis: null,
+          });
+
+          const aiPending = cleanedOpenEnded !== null;
+          const checkIn = await tx.checkIn.create({
             data: {
               organizationId,
               veteranId: userId,
-              checkInId: checkIn.id,
-              flagType: f.flagType,
-              severity: f.severity,
-              explanation: f.explanation,
-              domainsInvolved: f.domainsInvolved,
+              weekNumber,
+              responses: responses as unknown as object,
+              openEndedResponse: cleanedOpenEnded,
+              aiPending,
+              riskScore: out.overallScore,
+              riskLevel: out.overallRiskLevel,
+              engineVersion: out.engineVersion,
             },
           });
-        }
 
-        // Discard any draft for this week — it's been promoted to a CheckIn.
-        await tx.checkInDraft.deleteMany({
-          where: { veteranId: userId, weekNumber },
-        });
-
-        await logAudit(
-          {
-            organizationId,
-            actorId: userId,
-            actorRole: "VETERAN",
-            action: AUDIT_ACTIONS.CHECKIN_SUBMIT,
-            resourceType: "CheckIn",
-            resourceId: checkIn.id,
-            ipAddress: ctx.ipAddress,
-            userAgent: ctx.userAgent,
-            correlationId: ctx.correlationId,
-            metadata: {
-              riskLevel: out.overallRiskLevel,
-              flagCount: out.flags.length,
-              aiPending,
-            },
-          },
-          tx,
-        );
-
-        return {
-          status: 200 as const,
-          body: { ok: true, checkInId: checkIn.id },
-          checkInId: checkIn.id,
-          aiPending,
-        };
-      },
-    );
-
-    if (result.status !== 200) {
-      return NextResponse.json(result.body, { status: result.status });
-    }
-
-    if (result.aiPending) {
-      const enqueued = await enqueueLanguageAnalysis({
-        checkInId: result.checkInId,
-        organizationId,
-        veteranId: userId,
-        correlationId: ctx.correlationId,
-      });
-      if (!enqueued) {
-        // Queue unavailable: clear pending so the UI doesn't claim analysis is
-        // coming when nothing is going to run. Coordinator banner will note
-        // that the analysis is missing.
-        ctx.logger.warn(
-          { checkInId: result.checkInId },
-          "language-analysis queue unavailable; clearing aiPending",
-        );
-        await withTenant(
-          { organizationId, userId, userRole: "VETERAN", isOrgAdmin: false },
-          async (tx) => {
-            await tx.checkIn.update({
-              where: { id: result.checkInId },
+          for (const f of out.flags) {
+            await tx.flag.create({
               data: {
-                aiPending: false,
-                aiAnalysisFailedAt: new Date(),
-                aiAnalysisFailureReason: "queue unavailable at submit time",
+                organizationId,
+                veteranId: userId,
+                checkInId: checkIn.id,
+                flagType: f.flagType,
+                severity: f.severity,
+                explanation: f.explanation,
+                domainsInvolved: f.domainsInvolved,
               },
             });
-          },
-        );
-      }
-    }
+          }
 
-    if (idemKey) {
-      await recordResponse(
-        ctx,
-        "/api/check-ins",
-        idemKey,
-        hashBody(bodyText),
-        200,
-        { ok: true },
+          await tx.checkInDraft.deleteMany({
+            where: { veteranId: userId, weekNumber },
+          });
+
+          await logAudit(
+            {
+              organizationId,
+              actorId: userId,
+              actorRole: "VETERAN",
+              action: AUDIT_ACTIONS.CHECKIN_SUBMIT,
+              resourceType: "CheckIn",
+              resourceId: checkIn.id,
+              ipAddress: ctx.ipAddress,
+              userAgent: ctx.userAgent,
+              correlationId: ctx.correlationId,
+              metadata: {
+                riskLevel: out.overallRiskLevel,
+                flagCount: out.flags.length,
+                aiPending,
+              },
+            },
+            tx,
+          );
+
+          return { kind: "ok" as const, checkInId: checkIn.id, aiPending };
+        },
       );
-    }
 
-    // Veteran always gets the same calm response. They never see "you've been flagged."
-    return NextResponse.json({ ok: true }, {
-      headers: idemKey ? { [IDEMPOTENCY_HEADER]: idemKey } : undefined,
+      if (result.kind === "forbidden") {
+        return { status: 403, payload: { error: "forbidden" }, skipCache: true };
+      }
+
+      if (result.aiPending) {
+        const enqueued = await enqueueLanguageAnalysis({
+          checkInId: result.checkInId,
+          organizationId,
+          veteranId: userId,
+          correlationId: ctx.correlationId,
+        });
+        if (!enqueued) {
+          ctx.logger.warn(
+            { checkInId: result.checkInId },
+            "language-analysis queue unavailable; clearing aiPending",
+          );
+          await withTenant(
+            { organizationId, userId, userRole: "VETERAN", isOrgAdmin: false },
+            async (tx) => {
+              await tx.checkIn.update({
+                where: { id: result.checkInId },
+                data: {
+                  aiPending: false,
+                  aiAnalysisFailedAt: new Date(),
+                  aiAnalysisFailureReason: "queue unavailable at submit time",
+                },
+              });
+            },
+          );
+        }
+      }
+
+      // Veteran always gets the same calm response. They never see "you've been flagged."
+      return { status: 200, payload: { ok: true } };
     });
   },
   { roles: ["VETERAN"], rateLimit: "api.checkin" },

@@ -36,32 +36,42 @@ This repository is a working scaffold of the platform. It implements:
 | Layer | Status | Where |
 |---|---|---|
 | Multi-tenant data model | ✅ | `prisma/schema.prisma` |
-| RLS policies + immutability triggers | ✅ | `prisma/migrations/0001_init/migration.sql` |
+| RLS policies + immutability triggers | ✅ | `prisma/migrations/0001_init/migration.sql`, `prisma/migrations/0002_phase1/migration.sql` |
 | Risk scoring engine (layers 1, 2, 3, 5) | ✅ | `src/lib/risk/engine.ts` |
 | Risk engine test harness (synthetic trajectories) | ✅ | `src/lib/risk/__tests__/engine.test.ts` |
+| Backtest harness (1000+ synthetic trajectories, confusion matrix) | ✅ | `scripts/backtest.ts`, `src/lib/risk/synthetic-trajectories.ts` |
+| AI eval set (anchored cases, F1 per marker) | ✅ | `evals/language-analysis-v1/cases.jsonl`, `scripts/eval-language-analysis.ts` |
 | Canonical question bank | ✅ | `src/lib/questions/canonical.ts` |
-| AI layer (Claude integration) | ✅ | `src/lib/ai/` |
+| AI layer (Claude integration, async via BullMQ) | ✅ | `src/lib/ai/`, `src/workers/language-analysis.ts` |
 | Auth scaffolding | ✅ | `src/lib/auth/` |
-| Tenant context + audit logging | ✅ | `src/lib/db/tenant-context.ts`, `src/lib/audit/log.ts` |
+| Tenant context + audit logging + correlation IDs | ✅ | `src/lib/db/tenant-context.ts`, `src/lib/audit/log.ts`, `src/lib/logging/log.ts` |
+| Idempotency on every state-changing route | ✅ | `src/lib/idempotency/` |
+| Tenant-isolation tests (RLS + triggers, raw SQL) | ✅ | `src/__tests__/tenant-isolation.test.ts` |
+| Health checks (liveness + readiness) | ✅ | `src/app/api/healthz/`, `src/app/api/readyz/` |
+| BullMQ workers + hourly check-in invitation cron | ✅ | `src/workers/`, `src/app/api/cron/checkin-invites/` |
+| Service worker offline submission queue (IndexedDB + Background Sync) | ✅ | `public/sw.js` |
 | Design system tokens | ✅ | `tailwind.config.ts`, `src/app/globals.css` |
 | Custom components: `RiskBadge`, `CrisisResourceBanner`, `CheckInQuestion`, `DomainSparkline`, `TriageQueueItem` | ✅ | `src/components/sentinel/` |
-| Veteran app: home, check-in, completion, trends, onboarding | ✅ | `src/app/v/` |
-| Coordinator app: triage queue, per-veteran timeline | ✅ | `src/app/coordinator/` |
+| Veteran app: home, check-in (with drafts), completion, trends, insights, onboarding | ✅ | `src/app/v/` |
+| Coordinator app: triage queue, per-veteran timeline (with degradation banner + feedback) | ✅ | `src/app/coordinator/` |
 | Clinical lead: escalation queue | ✅ | `src/app/clinical/` |
-| Program manager: cohort dashboard | ✅ | `src/app/admin/` |
-| Check-in submission API | ✅ | `src/app/api/check-ins/route.ts` |
+| Program manager: cohort dashboard with override aggregates | ✅ | `src/app/admin/` |
+| Check-in submission API (queued layer-4, idempotent) | ✅ | `src/app/api/check-ins/route.ts` |
+| Veteran transparency + disagree feedback | ✅ | `src/app/v/insights/`, `src/app/api/check-ins/[id]/feedback/` |
+| Clinical-Lead severity override API | ✅ | `src/app/api/flags/[id]/override/` |
 
 ## What's intentionally not finished
 
 This is a foundation, not a finished product. The build prompt's full sprint plan (16 sprints) is the path to production. Notable items deferred from this scaffold:
 
 - Magic-link email provider wiring (NextAuth email provider configuration; depends on transactional provider choice)
-- BullMQ-backed notification fan-out workers
+- Coordinator velocity (live queue, SLA countdown, real-time updates, reassignment workflow, batch actions)
+- Outcome capture & IRB-aligned export
 - Bulk operations UI (CSV import, caseload reassignment wizard)
 - Org provisioning wizard (Super Admin)
 - Cohort creation wizard
 - E2E tests (Playwright) and accessibility automation in CI
-- HIPAA-aligned hosting documentation
+- FedRAMP-aligned hosting documentation
 
 ## Running locally
 
@@ -71,17 +81,36 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env
-# fill in DATABASE_URL, AUTH_SECRET, and (optionally) ANTHROPIC_API_KEY
+# fill in DATABASE_URL, AUTH_SECRET, REDIS_URL, and (optionally) ANTHROPIC_API_KEY
 
 # 3. Run migrations and seed canonical data
 npm run db:migrate
 npm run db:seed
 
-# 4. Run unit tests (risk engine)
+# 4. Run unit tests (risk engine + week derivation)
 npm test
 
 # 5. Start the dev server
 npm run dev
+
+# 6. (in another terminal) start the BullMQ worker process
+npm run worker
+```
+
+### Optional but recommended
+
+```bash
+# Engine confidence: 1000+ synthetic trajectories, confusion matrix.
+# Required pass before any threshold change in src/lib/risk/engine.ts.
+npm run backtest
+
+# AI eval: 25 anchored cases against the active layer-4 prompt.
+# Required pass before any prompt-version bump.
+ANTHROPIC_API_KEY=sk-... npm run eval:language
+
+# Tenant-isolation tests (cross-org RLS + append-only triggers).
+# Requires a disposable Postgres test instance.
+TEST_DATABASE_URL=postgresql://... npm run test:isolation
 ```
 
 ## Risk engine

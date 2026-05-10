@@ -105,44 +105,41 @@ export default async function VeteranInsightsPage() {
       )}
 
       <div className="space-y-3">
-        {rows.map((row) => (
-          <article
-            key={row.submittedAt.toISOString()}
-            className="rounded-lg border border-border bg-canvas-card p-5"
-          >
-            <header className="flex items-baseline justify-between gap-3">
-              <p className="text-caption uppercase tracking-wide text-ink-tertiary">
-                Week {row.weekNumber}
-              </p>
-              <p className="text-caption text-ink-tertiary">
-                {row.submittedAt.toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </p>
-            </header>
-            <p className="mt-2 text-body text-ink-primary">{row.prose}</p>
-            {row.outreachProse && (
-              <p className="mt-1 text-body text-ink-secondary">{row.outreachProse}</p>
-            )}
-            {row.flagIds.length > 0 && !data.existingFeedbackByCheckIn.has(getCheckInIdForRow(row, data.checkIns)) && (
-              <DisagreeButton checkInId={getCheckInIdForRow(row, data.checkIns)} />
-            )}
-            {row.flagIds.length > 0 && data.existingFeedbackByCheckIn.has(getCheckInIdForRow(row, data.checkIns)) && (
-              <p className="mt-3 text-caption text-ink-tertiary">
-                Thanks for adding context. Your coordinator can see it.
-              </p>
-            )}
-          </article>
-        ))}
+        {rows.map((row) => {
+          const alreadyDisagreed = data.existingFeedbackByCheckIn.has(row.checkInId);
+          const showDisagreeAffordance = row.flagIds.length > 0;
+          return (
+            <article
+              key={row.checkInId}
+              className="rounded-lg border border-border bg-canvas-card p-5"
+            >
+              <header className="flex items-baseline justify-between gap-3">
+                <p className="text-caption uppercase tracking-wide text-ink-tertiary">
+                  Week {row.weekNumber}
+                </p>
+                <p className="text-caption text-ink-tertiary">
+                  {row.submittedAt.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </header>
+              <p className="mt-2 text-body text-ink-primary">{row.prose}</p>
+              {row.outreachProse && (
+                <p className="mt-1 text-body text-ink-secondary">{row.outreachProse}</p>
+              )}
+              {showDisagreeAffordance && !alreadyDisagreed && (
+                <DisagreeButton checkInId={row.checkInId} />
+              )}
+              {showDisagreeAffordance && alreadyDisagreed && (
+                <p className="mt-3 text-caption text-ink-tertiary">
+                  Thanks for adding context. Your coordinator can see it.
+                </p>
+              )}
+            </article>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-function getCheckInIdForRow(
-  row: { submittedAt: Date },
-  checkIns: { id: string; submittedAt: Date }[],
-): string {
-  return checkIns.find((c) => c.submittedAt.getTime() === row.submittedAt.getTime())?.id ?? "";
 }
