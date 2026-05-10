@@ -5,15 +5,31 @@
  *
  * Boot sequence:
  *   1. Verify Redis is configured.
- *   2. Spin up workers for each queue.
- *   3. Register the hourly check-in invitation sweep as a repeatable job.
- *   4. Wire shutdown signals.
+ *   2. Spin up a worker per queue: language-analysis, notification,
+ *      check-in invitation sweep, SLA monitor, data-retention,
+ *      caseload-reassignment.
+ *   3. Register repeatable cron jobs (hourly invite sweep, every-minute SLA
+ *      monitor, daily retention).
+ *   4. Each worker writes a heartbeat key so /api/readyz can detect a
+ *      stuck worker.
+ *   5. Wire SIGTERM/SIGINT for graceful shutdown.
  */
 
 import { logger } from "@/lib/logging/log";
-import { registerInviteSweep } from "@/lib/queue/queues";
+import {
+  registerInviteSweep,
+  registerSlaMonitor,
+  registerDataRetention,
+} from "@/lib/queue/queues";
+import { writeHeartbeat } from "@/lib/observability/heartbeat";
 import { buildLanguageAnalysisWorker, markLanguageAnalysisFailed } from "./language-analysis";
 import { buildCheckinInviteWorker } from "./checkin-invite-cron";
+import { buildNotificationWorker } from "./notification";
+import { buildSlaMonitorWorker } from "./sla-monitor";
+import { buildDataRetentionWorker } from "./data-retention";
+import { buildCaseloadReassignmentWorker } from "./caseload-reassignment";
+
+const HEARTBEAT_INTERVAL_MS = 15_000;
 
 async function main(): Promise<void> {
   if (!process.env.REDIS_URL) {
@@ -23,15 +39,22 @@ async function main(): Promise<void> {
 
   logger.info("worker process starting");
 
-  const langWorker = buildLanguageAnalysisWorker();
-  const inviteWorker = buildCheckinInviteWorker();
+  const workers = {
+    languageAnalysis: buildLanguageAnalysisWorker(),
+    notification: buildNotificationWorker(),
+    invite: buildCheckinInviteWorker(),
+    sla: buildSlaMonitorWorker(),
+    retention: buildDataRetentionWorker(),
+    reassignment: buildCaseloadReassignmentWorker(),
+  };
 
-  if (!langWorker || !inviteWorker) {
-    logger.error("failed to construct workers; exiting");
+  const failed = Object.entries(workers).filter(([, w]) => !w);
+  if (failed.length > 0) {
+    logger.error({ failed: failed.map(([n]) => n) }, "failed to construct workers; exiting");
     process.exit(1);
   }
 
-  langWorker.on("failed", (job, err) => {
+  workers.languageAnalysis!.on("failed", (job, err) => {
     if (!job) return;
     const exhausted = job.attemptsMade >= (job.opts.attempts ?? 1);
     logger.warn(
@@ -52,17 +75,49 @@ async function main(): Promise<void> {
     }
   });
 
-  inviteWorker.on("failed", (job, err) => {
+  workers.notification!.on("failed", (job, err) => {
+    logger.warn(
+      { jobId: job?.id, attempt: job?.attemptsMade, err: err.message },
+      "notification job failed",
+    );
+  });
+
+  workers.invite!.on("failed", (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, "check-in invite sweep failed");
   });
 
+  workers.sla!.on("failed", (job, err) => {
+    logger.error({ jobId: job?.id, err: err.message }, "SLA monitor sweep failed");
+  });
+
+  workers.retention!.on("failed", (job, err) => {
+    logger.error({ jobId: job?.id, err: err.message }, "data-retention sweep failed");
+  });
+
+  workers.reassignment!.on("failed", (job, err) => {
+    logger.error({ jobId: job?.id, err: err.message }, "caseload-reassignment job failed");
+  });
+
   await registerInviteSweep();
-  logger.info("invitation sweep registered (hourly cron)");
+  await registerSlaMonitor();
+  await registerDataRetention();
+  logger.info("repeatable jobs registered (invite sweep, SLA monitor, data retention)");
+
+  // Heartbeat: every interval, write the current timestamp keyed by worker name
+  // so /api/readyz can detect a wedged worker process.
+  const heartbeat = setInterval(() => {
+    void writeHeartbeat("worker", { ttlMs: HEARTBEAT_INTERVAL_MS * 4 }).catch((err) => {
+      logger.warn({ err: err?.message }, "heartbeat write failed");
+    });
+  }, HEARTBEAT_INTERVAL_MS);
+  void writeHeartbeat("worker", { ttlMs: HEARTBEAT_INTERVAL_MS * 4 });
+
   logger.info("worker process ready");
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "worker shutdown");
-    await Promise.allSettled([langWorker.close(), inviteWorker.close()]);
+    clearInterval(heartbeat);
+    await Promise.allSettled(Object.values(workers).map((w) => w!.close()));
     process.exit(0);
   };
   process.on("SIGTERM", () => void shutdown("SIGTERM"));

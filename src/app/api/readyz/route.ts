@@ -13,6 +13,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getRedis } from "@/lib/queue/redis";
 import { logger } from "@/lib/logging/log";
+import { readHeartbeat } from "@/lib/observability/heartbeat";
+
+const WORKER_HEARTBEAT_MAX_AGE_MS = 90_000;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +52,19 @@ export async function GET() {
       if (!client) throw new Error("redis not configured");
       const reply = await client.ping();
       if (reply !== "PONG") throw new Error(`unexpected redis ping reply: ${reply}`);
+    }),
+    // Worker heartbeat: stale heartbeat = wedged worker = readiness fail.
+    // Skip this check entirely when REDIS_URL is unset (dev path) so the
+    // probe doesn't double-fail for a missing dep.
+    check("worker", async () => {
+      if (!process.env.REDIS_URL) return; // dev mode
+      const hb = await readHeartbeat("worker");
+      if (!hb.alive || hb.ageMs === null) {
+        throw new Error("worker heartbeat missing");
+      }
+      if (hb.ageMs > WORKER_HEARTBEAT_MAX_AGE_MS) {
+        throw new Error(`worker heartbeat stale: ${hb.ageMs}ms`);
+      }
     }),
   ]);
 

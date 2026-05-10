@@ -24,6 +24,7 @@ import { analyzeOpenEndedResponse } from "@/lib/ai/client";
 import { score, ENGINE_VERSION } from "@/lib/risk/engine";
 import type { CheckInRecord, CheckInResponse, LanguageAnalysis } from "@/lib/risk/types";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
+import { dispatchFlagNotifications } from "@/lib/notifications/dispatch";
 import { withCorrelation } from "@/lib/logging/log";
 import { buildQueueConnection } from "@/lib/queue/redis";
 import {
@@ -195,8 +196,9 @@ export async function runLanguageAnalysisJob(job: Job<LanguageAnalysisJob>): Pro
     const layer4Flags = out.flags.filter(
       (f) => f.flagType === "LANGUAGE_MARKER" || f.flagType === "EXPLICIT_RISK",
     );
+    const createdLayer4: { flagId: string; severity: typeof layer4Flags[number]["severity"] }[] = [];
     for (const f of layer4Flags) {
-      await tx.flag.create({
+      const created = await tx.flag.create({
         data: {
           organizationId,
           veteranId,
@@ -206,6 +208,22 @@ export async function runLanguageAnalysisJob(job: Job<LanguageAnalysisJob>): Pro
           explanation: f.explanation,
           domainsInvolved: f.domainsInvolved,
         },
+        select: { id: true, severity: true },
+      });
+      createdLayer4.push({ flagId: created.id, severity: created.severity });
+    }
+
+    // Fan out notifications for any new layer-4 flags. EXPLICIT_RISK is RED
+    // and triggers the full coordinator + clinical-lead + PM cascade.
+    if (createdLayer4.length > 0) {
+      await dispatchFlagNotifications(tx, {
+        organizationId,
+        flags: createdLayer4.map((f) => ({
+          flagId: f.flagId,
+          veteranId,
+          severity: f.severity,
+        })),
+        correlationId,
       });
     }
 

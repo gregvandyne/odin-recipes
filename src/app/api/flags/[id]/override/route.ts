@@ -103,5 +103,5 @@ export const POST = withAuth(
       return { status: 200, payload: { ok: true, flag: result.flag } };
     });
   },
-  { roles: ["CLINICAL_LEAD", "PROGRAM_MANAGER"], rateLimit: "api.flag.override" },
+  { roles: ["CLINICAL_LEAD", "PROGRAM_MANAGER"], rateLimit: "api.flag.override", requireMfa: true },
 );

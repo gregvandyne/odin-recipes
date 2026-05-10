@@ -141,6 +141,9 @@ model User {
   deactivatedById         String?      @db.Uuid
   deactivationReason      String?
   reactivationDeadline    DateTime?
+  // MFA secret + recovery flow
+  mfaSecretEncrypted      String?
+  mfaConfirmedAt          DateTime?
 
   organization      Organization?            @relation(fields: [organizationId], references: [id])
   veteranProfile    VeteranProfile?
@@ -824,4 +827,26 @@ model ConsentRecord {
 
   @@index([userId, signedAt])
   @@index([organizationId, consentVersion])
+}
+
+// =============================================================================
+// EMAIL SUPPRESSION
+// Hard bounces, complaints, manual unsubscribes. Send-time check on every
+// outbound. Platform-wide (no organizationId) — a bounce is a bounce.
+// =============================================================================
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  COMPLAINT
+  MANUAL
+  INVALID_ADDRESS
+}
+
+model SuppressionList {
+  email        String            @id
+  reason       SuppressionReason
+  suppressedAt DateTime          @default(now())
+  metadata     Json              @default("{}")
+
+  @@index([reason, suppressedAt])
 }

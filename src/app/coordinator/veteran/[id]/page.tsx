@@ -1,114 +1,210 @@
+import { redirect } from "next/navigation";
 import { DomainSparkline } from "@/components/sentinel/domain-sparkline";
 import { RiskBadge } from "@/components/sentinel/risk-badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import type { DomainCode, RiskLevel } from "@/lib/risk/types";
-import { AlertTriangle, MessageSquare, Phone, Calendar, ArrowUpRight, Sparkles, AlertCircle, MessageCircleWarning } from "lucide-react";
+import type { DomainCode, RiskLevel, CheckInRecord, CheckInResponse } from "@/lib/risk/types";
+import { DOMAIN_CODES } from "@/lib/risk/types";
+import { computeDomainScores, score as scoreFn } from "@/lib/risk/engine";
+import { AlertTriangle, AlertCircle, Sparkles, MessageCircleWarning } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { withTenant } from "@/lib/db/tenant-context";
+import { currentWeekNumber } from "@/lib/program/week";
+import { ActionPanel } from "./action-panel";
 
 interface PageProps { params: { id: string } }
 
-const sampleDomains: { domain: DomainCode; values: (number | null)[] }[] = [
-  { domain: "SLEEP",        values: [40, 50, 35, 45, 30, 35, 25, 60] },
-  { domain: "MOOD",         values: [50, 45, 50, 55, 60, 55, 50, 80] },
-  { domain: "CONNECTION",   values: [70, 60, 55, 60, 50, 45, 40, 75] },
-  { domain: "PURPOSE",      values: [40, 40, 50, 45, 50, 40, 45, 55] },
-  { domain: "FINANCE",      values: [60, 55, 50, 55, 50, 50, 45, 50] },
-  { domain: "SUBSTANCE",    values: [10, 10, 15, 10, 10, 15, 10, 30] },
-  { domain: "PAIN",         values: [30, 25, 30, 35, 30, 30, 25, 40] },
-  { domain: "RELATIONSHIP", values: [40, 35, 30, 35, 40, 30, 30, 60] },
-  { domain: "HOUSING",      values: [10, 10, 10, 10, 10, 10, 10, 10] },
-];
-
-const flags = [
-  {
-    severity: "ORANGE" as RiskLevel,
-    explanation: "Sleep + Mood + Connection all degraded together this week. Known high-risk pattern.",
-    domains: ["SLEEP", "MOOD", "CONNECTION"] as DomainCode[],
-    when: "2 hours ago",
-  },
-];
-
-const recentTimeline = [
-  { week: 8, kind: "checkin",  riskLevel: "ORANGE" as RiskLevel, summary: "Open-ended response: \"Haven't slept right in two weeks. The job thing fell through.\"" },
-  { week: 7, kind: "contact",  riskLevel: null,                  summary: "Coordinator outreach call — 22 min. Followed up on VA financial counseling referral." },
-  { week: 7, kind: "checkin",  riskLevel: "YELLOW" as RiskLevel, summary: "Mood worsened by 18 points vs. 4-week baseline." },
-  { week: 6, kind: "checkin",  riskLevel: "GREEN" as RiskLevel,  summary: "Stable across domains." },
-];
+const ACTION_BY_LEVEL: Record<RiskLevel, { label: string; deadline: string }> = {
+  RED: { label: "Immediate action", deadline: "1 hour" },
+  ORANGE: { label: "Outreach within 24h", deadline: "24 hours" },
+  YELLOW: { label: "Note and follow", deadline: "48 hours" },
+  GREEN: { label: "Routine", deadline: "—" },
+};
 
 export default async function VeteranTimelinePage({ params }: PageProps) {
-  const veteran = {
-    id: params.id,
-    name: "PO2 J. Reed",
-    initials: "JR",
-    branch: "Navy",
-    weeksSinceSeparation: 9,
-    coordinator: "S. Kim",
-    riskLevel: "ORANGE" as RiskLevel,
-  };
-
   const session = await auth();
   const orgId = (session?.user as { organizationId?: string } | undefined)?.organizationId;
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? "COORDINATOR";
+  if (!orgId || !userId) redirect("/auth/sign-in");
 
-  // Pull real degradation banners + recent veteran feedback for this veteran.
-  // If the session isn't a real coordinator session (e.g. screenshot capture),
-  // fall back to empty arrays so the mock-driven UI still renders.
-  const live = orgId && userId
-    ? await withTenant(
-        { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },
-        async (tx) => {
-          const aiFailed = await tx.checkIn.findMany({
-            where: { veteranId: params.id, aiAnalysisFailedAt: { not: null } },
-            orderBy: { submittedAt: "desc" },
-            take: 4,
-            select: { id: true, submittedAt: true, weekNumber: true, aiAnalysisFailureReason: true },
-          });
-          const aiPending = await tx.checkIn.findMany({
-            where: { veteranId: params.id, aiPending: true },
-            orderBy: { submittedAt: "desc" },
-            take: 4,
-            select: { id: true, submittedAt: true, weekNumber: true },
-          });
-          const feedback = await tx.checkInFeedback.findMany({
-            where: { veteranId: params.id, acknowledgedAt: null },
-            orderBy: { createdAt: "desc" },
-            take: 6,
-            select: { id: true, createdAt: true, body: true, checkInId: true },
-          });
-          return { aiFailed, aiPending, feedback };
+  const data = await withTenant(
+    { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },
+    async (tx) => {
+      const profile = await tx.veteranProfile.findUnique({
+        where: { userId: params.id },
+        select: {
+          userId: true,
+          branchOfService: true,
+          programStartDate: true,
+          timezone: true,
+          assignedCoordinatorId: true,
+          cohort: { select: { name: true } },
+          user: { select: { displayName: true, email: true } },
         },
-      ).catch(() => ({ aiFailed: [], aiPending: [], feedback: [] }))
-    : { aiFailed: [], aiPending: [], feedback: [] };
+      });
+      if (!profile) return null;
+
+      const checkIns = await tx.checkIn.findMany({
+        where: { veteranId: params.id },
+        orderBy: { submittedAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          weekNumber: true,
+          submittedAt: true,
+          responses: true,
+          riskLevel: true,
+          aiPending: true,
+          aiAnalysisFailedAt: true,
+          aiAnalysisFailureReason: true,
+        },
+      });
+
+      const flags = await tx.flag.findMany({
+        where: { veteranId: params.id, resolvedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          severity: true,
+          explanation: true,
+          domainsInvolved: true,
+          createdAt: true,
+          acknowledgedAt: true,
+          severityOverrideAt: true,
+        },
+      });
+
+      const contacts = await tx.contact.findMany({
+        where: { veteranId: params.id },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          contactType: true,
+          direction: true,
+          createdAt: true,
+          followUpRequired: true,
+          followUpBy: true,
+          coordinator: { select: { displayName: true, email: true } },
+        },
+      });
+
+      const feedback = await tx.checkInFeedback.findMany({
+        where: { veteranId: params.id, acknowledgedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        select: { id: true, createdAt: true, body: true, checkInId: true },
+      });
+
+      const coordinator = profile.assignedCoordinatorId
+        ? await tx.user.findUnique({
+            where: { id: profile.assignedCoordinatorId },
+            select: { displayName: true, email: true },
+          })
+        : null;
+
+      // Latest check-in's open thread (if any) — used for the "Send message" button.
+      const thread = await tx.messageThread.findFirst({
+        where: { veteranId: params.id, coordinatorId: userId },
+        select: { id: true },
+      });
+
+      return { profile, checkIns, flags, contacts, feedback, coordinator, threadId: thread?.id ?? null };
+    },
+  );
+
+  if (!data) redirect("/coordinator");
+
+  const veteranName = data.profile.user.displayName ?? data.profile.user.email;
+  const initials = veteranName
+    .split(/\s+/)
+    .map((s) => s[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const week = currentWeekNumber(data.profile.programStartDate, new Date(), data.profile.timezone);
+  const topFlag = data.flags[0];
+  const overallRisk: RiskLevel = topFlag?.severity ?? data.checkIns[0]?.riskLevel ?? "GREEN";
+  const action = ACTION_BY_LEVEL[overallRisk];
+
+  // Domain sparklines from real check-ins (oldest → newest for the chart).
+  const ordered = data.checkIns.slice().reverse();
+  const sparklines: { domain: DomainCode; values: (number | null)[] }[] = DOMAIN_CODES.map((d) => ({
+    domain: d,
+    values: ordered.map((c) => {
+      const record: CheckInRecord = {
+        id: c.id,
+        weekNumber: c.weekNumber,
+        submittedAt: c.submittedAt,
+        responses: (c.responses as unknown as CheckInResponse[]) ?? [],
+        openEndedResponse: null,
+      };
+      const ds = computeDomainScores(record).find((x) => x.domain === d);
+      if (!ds || ds.responseCount === 0) return null;
+      return Math.round(ds.score);
+    }),
+  }));
+
+  // Build a unified activity timeline (check-ins + contacts + flags) ordered
+  // newest first.
+  const activity = [
+    ...data.checkIns.map((c) => ({
+      kind: "checkin" as const,
+      time: c.submittedAt,
+      week: c.weekNumber,
+      riskLevel: c.riskLevel,
+      summary:
+        c.riskLevel === "GREEN"
+          ? "Stable check-in across domains."
+          : `Check-in submitted${c.riskLevel ? ` (${c.riskLevel})` : ""}.`,
+    })),
+    ...data.contacts.map((k) => ({
+      kind: "contact" as const,
+      time: k.createdAt,
+      week: 0,
+      riskLevel: null as RiskLevel | null,
+      summary: `${k.coordinator.displayName ?? "Coordinator"} — ${k.contactType.replace(/_/g, " ").toLowerCase()} (${k.direction.toLowerCase()})${k.followUpRequired ? " · follow-up required" : ""}.`,
+    })),
+    ...data.flags.map((f) => ({
+      kind: "flag" as const,
+      time: f.createdAt,
+      week: 0,
+      riskLevel: f.severity,
+      summary: f.explanation,
+    })),
+  ]
+    .sort((a, b) => b.time.getTime() - a.time.getTime())
+    .slice(0, 20);
+
+  const aiFailed = data.checkIns.filter((c) => c.aiAnalysisFailedAt);
+  const aiPending = data.checkIns.filter((c) => c.aiPending);
 
   return (
     <div className="px-6 py-6">
-      {/* Sticky header */}
       <header className="mb-6 flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <Avatar initials={veteran.initials} size="lg" />
+          <Avatar initials={initials} size="lg" />
           <div>
             <p className="text-caption text-ink-tertiary">
-              {veteran.branch} · Week {veteran.weeksSinceSeparation} · Coord {veteran.coordinator}
+              {data.profile.branchOfService} · Week {week} · Coord{" "}
+              {data.coordinator?.displayName ?? data.coordinator?.email ?? "Unassigned"}
             </p>
-            <h1 className="mt-1 text-display font-semibold text-ink-primary">{veteran.name}</h1>
+            <h1 className="mt-1 text-display font-semibold text-ink-primary">{veteranName}</h1>
             <div className="mt-2 flex items-center gap-2">
               <Badge>52-week program</Badge>
-              <Badge variant="outline">Cohort: Spring 2026 A</Badge>
+              <Badge variant="outline">Cohort: {data.profile.cohort.name}</Badge>
             </div>
           </div>
         </div>
-        <RiskBadge level={veteran.riskLevel} />
+        <RiskBadge level={overallRisk} />
       </header>
 
-      {(live.aiFailed.length > 0 || live.aiPending.length > 0) && (
+      {(aiFailed.length > 0 || aiPending.length > 0) && (
         <div className="mb-4 space-y-2">
-          {live.aiFailed.map((c) => (
+          {aiFailed.map((c) => (
             <div
               key={c.id}
               className="flex items-start gap-3 rounded-md border border-risk-orange/40 bg-risk-orange/5 p-4 text-body"
@@ -125,7 +221,7 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
               </div>
             </div>
           ))}
-          {live.aiPending.map((c) => (
+          {aiPending.map((c) => (
             <div
               key={c.id}
               className="flex items-start gap-3 rounded-md border border-border bg-canvas-banded p-4 text-body"
@@ -144,7 +240,7 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
         </div>
       )}
 
-      {live.feedback.length > 0 && (
+      {data.feedback.length > 0 && (
         <Card className="mb-4 border-primary/30 bg-primary/5">
           <CardHeader>
             <div className="flex items-start gap-3">
@@ -159,7 +255,7 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {live.feedback.map((f) => (
+            {data.feedback.map((f) => (
               <blockquote
                 key={f.id}
                 className="border-l-2 border-primary/40 pl-3 text-body text-ink-primary"
@@ -176,20 +272,38 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 space-y-4 lg:col-span-8">
-          {flags.map((f, i) => (
-            <Card key={i} className="border-risk-orange/30 bg-risk-orange/5">
+          {data.flags.map((f) => (
+            <Card
+              key={f.id}
+              className={
+                f.severity === "RED"
+                  ? "border-risk-red/30 bg-risk-red/5"
+                  : f.severity === "ORANGE"
+                  ? "border-risk-orange/30 bg-risk-orange/5"
+                  : "border-risk-yellow/30 bg-risk-yellow/5"
+              }
+            >
               <CardHeader>
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-risk-orange" aria-hidden />
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-ink-secondary" aria-hidden />
                   <div className="flex-1">
-                    <CardTitle className="text-body-lg">Flag raised · {f.when}</CardTitle>
+                    <CardTitle className="text-body-lg">
+                      Flag · {timeAgo(f.createdAt)}
+                      {f.severityOverrideAt && (
+                        <Badge variant="outline" className="ml-2">override</Badge>
+                      )}
+                      {f.acknowledgedAt && (
+                        <Badge variant="outline" className="ml-2">acknowledged</Badge>
+                      )}
+                    </CardTitle>
                     <CardDescription className="mt-1.5">{f.explanation}</CardDescription>
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {f.domains.map((d) => (
+                      {f.domainsInvolved.map((d) => (
                         <Badge key={d} variant="outline">{d}</Badge>
                       ))}
                     </div>
                   </div>
+                  <RiskBadge level={f.severity} size="sm" />
                 </div>
               </CardHeader>
             </Card>
@@ -197,11 +311,11 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-body-lg">Domain trends · last 8 weeks</CardTitle>
+              <CardTitle className="text-body-lg">Domain trends · last 12 weeks</CardTitle>
               <CardDescription>Higher = more concerning. Tick marks = missed weeks.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {sampleDomains.map((d) => (
+              {sparklines.map((d) => (
                 <DomainSparkline key={d.domain} {...d} width={420} height={36} />
               ))}
             </CardContent>
@@ -213,18 +327,28 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <ol className="relative space-y-5 border-l border-border pl-5">
-                {recentTimeline.map((t, i) => (
+                {activity.length === 0 && (
+                  <li className="text-body text-ink-tertiary">No activity yet.</li>
+                )}
+                {activity.map((t, i) => (
                   <li key={i} className="relative">
                     <span
                       className={`absolute -left-[1.6rem] top-1 grid h-3 w-3 place-items-center rounded-full border-2 border-canvas-card ${
-                        t.kind === "contact" ? "bg-primary" : "bg-ink-tertiary"
+                        t.kind === "contact"
+                          ? "bg-primary"
+                          : t.kind === "flag"
+                          ? "bg-risk-orange"
+                          : "bg-ink-tertiary"
                       }`}
                       aria-hidden
                     />
                     <div className="flex items-baseline gap-2">
-                      <span className="text-caption font-semibold text-ink-secondary">Week {t.week}</span>
+                      <span className="text-caption font-semibold text-ink-secondary">
+                        {t.kind === "checkin" ? `Week ${t.week}` : t.time.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </span>
                       {t.riskLevel && <RiskBadge level={t.riskLevel} size="sm" />}
                       {t.kind === "contact" && <Badge variant="primary">Contact</Badge>}
+                      {t.kind === "flag" && <Badge variant="outline">Flag</Badge>}
                     </div>
                     <p className="mt-1 text-body text-ink-primary">{t.summary}</p>
                   </li>
@@ -234,48 +358,28 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
           </Card>
         </div>
 
-        <aside className="col-span-12 space-y-3 lg:col-span-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-body-lg">Recommended action</CardTitle>
-              <CardDescription>Contact within <strong className="text-risk-orange">24 hours</strong>.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="primary" className="w-full justify-start">
-                <MessageSquare className="h-4 w-4" /> Send message
-              </Button>
-              <Button variant="secondary" className="w-full justify-start">
-                <Phone className="h-4 w-4" /> Log a call
-              </Button>
-              <Button variant="secondary" className="w-full justify-start">
-                <Calendar className="h-4 w-4" /> Schedule outreach
-              </Button>
-              <Separator />
-              <Button variant="ghost" className="w-full justify-start text-ink-secondary">
-                <Sparkles className="h-4 w-4" /> AI-assist draft
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-ink-secondary">
-                <ArrowUpRight className="h-4 w-4" /> Escalate to Clinical Lead
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-body-lg">Triage protocol · ORANGE</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-body text-ink-secondary">
-                <li>· Review the last 4 weeks before reaching out.</li>
-                <li>· Acknowledge what they shared specifically.</li>
-                <li>· Offer one concrete next step. No pressure.</li>
-                <li>· Log the contact within 24 hours of completion.</li>
-                <li>· Consult Clinical Lead if uncertain.</li>
-              </ul>
-            </CardContent>
-          </Card>
+        <aside className="col-span-12 lg:col-span-4">
+          <ActionPanel
+            veteranId={params.id}
+            riskLevel={overallRisk}
+            actionLabel={action.label}
+            actionDeadline={action.deadline}
+            topFlagId={topFlag?.id ?? null}
+            topFlagAcknowledged={!!topFlag?.acknowledgedAt}
+            existingThreadId={data.threadId}
+          />
         </aside>
       </div>
     </div>
   );
+}
+
+function timeAgo(d: Date): string {
+  const ms = Date.now() - d.getTime();
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
 }

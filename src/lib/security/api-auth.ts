@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { consume, ipFromRequest, type LimitName } from "./rate-limit";
 import { withCorrelation, newCorrelationId, CORRELATION_HEADER, type Logger } from "@/lib/logging/log";
+import { withErrorTracking } from "@/lib/observability/sentry";
 
 export type Role =
   | "SUPER_ADMIN"
@@ -46,11 +47,24 @@ export interface WithAuthOpts {
   rateLimit?: LimitName;
   /** Require organizationId to be set (everything except SUPER_ADMIN-only paths). */
   requireOrganization?: boolean;
+  /**
+   * Require a recent successful MFA challenge for this action. Used for
+   * sensitive paths (severity overrides, deactivations, audit exports).
+   *
+   * Implementation: the session callback stamps `Session.mfaCompletedAt` after
+   * a successful TOTP challenge. The check passes if mfaCompletedAt is within
+   * `MFA_FRESH_WINDOW_MS` of now.
+   */
+  requireMfa?: boolean;
 }
 
-type Handler = (req: NextRequest, ctx: AuthContext) => Promise<NextResponse>;
+const MFA_FRESH_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
-export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextRequest) => Promise<NextResponse> {
+// Most route handlers return NextResponse, but SSE streams + binary responses
+// return a plain Response. Both are acceptable.
+type Handler = (req: NextRequest, ctx: AuthContext) => Promise<NextResponse | Response>;
+
+export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextRequest) => Promise<Response> {
   return async (req: NextRequest) => {
     const session = await auth();
     if (!session?.user) {
@@ -109,8 +123,41 @@ export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextR
       }
     }
 
-    const res = await handler(req, ctx);
-    res.headers.set(CORRELATION_HEADER, correlationId);
+    if (opts.requireMfa) {
+      // Read the session token to find the active session row + mfaCompletedAt.
+      // Defer-import to avoid pulling Prisma into edge bundles unnecessarily.
+      const { prisma } = await import("@/lib/db/prisma");
+      const recent = await prisma.session.findFirst({
+        where: {
+          userId: ctx.userId,
+          revokedAt: null,
+          mfaCompletedAt: { gte: new Date(Date.now() - MFA_FRESH_WINDOW_MS) },
+        },
+        orderBy: { mfaCompletedAt: "desc" },
+        select: { id: true },
+      });
+      if (!recent) {
+        return NextResponse.json(
+          { error: "mfa_required", reason: "Please complete an MFA challenge to perform this action." },
+          {
+            status: 403,
+            headers: { [CORRELATION_HEADER]: correlationId },
+          },
+        );
+      }
+    }
+
+    const res = await withErrorTracking(`route:${req.nextUrl.pathname}`, () => handler(req, ctx), {
+      correlationId,
+      method: req.method,
+      role: u.role,
+    });
+    // Streamed responses (SSE) may have read-only headers — set best-effort.
+    try {
+      res.headers.set(CORRELATION_HEADER, correlationId);
+    } catch {
+      /* immutable headers — ignore */
+    }
     return res;
   };
 }

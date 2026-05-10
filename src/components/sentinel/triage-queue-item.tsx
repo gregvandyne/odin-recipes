@@ -19,6 +19,8 @@ interface Props {
   recommendedAction: string;
   flaggedAt: Date;
   isFocused?: boolean;
+  /** SLA budget in hours. Used to render the countdown column. */
+  slaHours?: number;
 }
 
 const bandColor: Record<RiskLevel, string> = {
@@ -37,7 +39,11 @@ export function TriageQueueItem({
   recommendedAction,
   flaggedAt,
   isFocused,
+  slaHours,
 }: Props) {
+  const slaInfo = slaHours
+    ? computeSla(flaggedAt, slaHours)
+    : null;
   return (
     <Link
       href={`/coordinator/veteran/${veteranId}`}
@@ -62,10 +68,42 @@ export function TriageQueueItem({
         <div className="truncate text-body text-ink-primary">{flagSummary}</div>
         <div className="truncate text-caption text-ink-secondary">{recommendedAction}</div>
       </div>
-      <div className="w-24 shrink-0 text-right text-caption text-ink-tertiary">
-        {formatDistanceToNow(flaggedAt, { addSuffix: true })}
+      <div className="w-32 shrink-0 text-right text-caption">
+        <div className="text-ink-tertiary">{formatDistanceToNow(flaggedAt, { addSuffix: true })}</div>
+        {slaInfo && (
+          <div
+            className={cn(
+              "mt-0.5 font-semibold",
+              slaInfo.tone === "breached"
+                ? "text-risk-red"
+                : slaInfo.tone === "warning"
+                ? "text-risk-orange"
+                : "text-ink-secondary",
+            )}
+          >
+            {slaInfo.label}
+          </div>
+        )}
       </div>
       <ChevronRight className="h-4 w-4 text-ink-tertiary group-hover:text-ink-primary" aria-hidden />
     </Link>
   );
+}
+
+function computeSla(flaggedAt: Date, slaHours: number): { label: string; tone: "ok" | "warning" | "breached" } {
+  const deadline = flaggedAt.getTime() + slaHours * 60 * 60 * 1000;
+  const remainingMs = deadline - Date.now();
+  if (remainingMs < 0) {
+    return { label: "SLA breached", tone: "breached" };
+  }
+  const hours = remainingMs / (60 * 60 * 1000);
+  const tone: "ok" | "warning" = hours < slaHours * 0.25 ? "warning" : "ok";
+  if (hours < 1) {
+    const minutes = Math.max(1, Math.round(remainingMs / 60_000));
+    return { label: `${minutes}m left`, tone };
+  }
+  if (hours < 24) {
+    return { label: `${Math.round(hours)}h left`, tone };
+  }
+  return { label: `${Math.round(hours / 24)}d left`, tone };
 }

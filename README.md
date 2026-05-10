@@ -36,7 +36,7 @@ This repository is a working scaffold of the platform. It implements:
 | Layer | Status | Where |
 |---|---|---|
 | Multi-tenant data model | ✅ | `prisma/schema.prisma` |
-| RLS policies + immutability triggers | ✅ | `prisma/migrations/0001_init/migration.sql`, `prisma/migrations/0002_phase1/migration.sql` |
+| RLS policies + immutability triggers | ✅ | `prisma/migrations/0001_init/migration.sql`, `prisma/migrations/0002_phase1/migration.sql`, `prisma/migrations/0003_phase2/migration.sql` |
 | Risk scoring engine (layers 1, 2, 3, 5) | ✅ | `src/lib/risk/engine.ts` |
 | Risk engine test harness (synthetic trajectories) | ✅ | `src/lib/risk/__tests__/engine.test.ts` |
 | Backtest harness (1000+ synthetic trajectories, confusion matrix) | ✅ | `scripts/backtest.ts`, `src/lib/risk/synthetic-trajectories.ts` |
@@ -50,6 +50,23 @@ This repository is a working scaffold of the platform. It implements:
 | Health checks (liveness + readiness) | ✅ | `src/app/api/healthz/`, `src/app/api/readyz/` |
 | BullMQ workers + hourly check-in invitation cron | ✅ | `src/workers/`, `src/app/api/cron/checkin-invites/` |
 | Service worker offline submission queue (IndexedDB + Background Sync) | ✅ | `public/sw.js` |
+| Crisis-path notification fan-out (email + Web Push + SSE) | ✅ | `src/workers/notification.ts`, `src/lib/notifications/` |
+| TOTP MFA + recovery codes + step-up for sensitive actions | ✅ | `src/lib/auth/totp.ts`, `src/app/api/auth/mfa/` |
+| Coordinator triage queue with live SSE + SLA countdown | ✅ | `src/app/coordinator/page.tsx`, `src/app/api/coordinator/queue/stream/` |
+| Real per-veteran timeline with action panel | ✅ | `src/app/coordinator/veteran/[id]/` |
+| Real clinical-lead escalation queue + claim/notes/close | ✅ | `src/app/clinical/`, `src/app/api/escalations/` |
+| Real PM dashboard metrics (completion %, response medians, caseload health) | ✅ | `src/lib/metrics/program.ts` |
+| Caseload reassignment + OOO routing | ✅ | `src/workers/caseload-reassignment.ts`, `src/app/api/ooo/` |
+| Sentry/OTel error tracking (PII-scrubbed) | ✅ | `src/lib/observability/sentry.ts` |
+| Worker heartbeat + readyz check | ✅ | `src/lib/observability/heartbeat.ts` |
+| Email bounce suppression + Resend webhook | ✅ | `src/lib/email/suppression.ts`, `src/app/api/webhooks/resend/` |
+| Audit-log query/export (NDJSON) | ✅ | `src/app/api/admin/audit/export/` |
+| Data retention cron + org deprovisioning purge | ✅ | `src/workers/data-retention.ts` |
+| SLA monitor (RED/ORANGE breach paging) | ✅ | `src/workers/sla-monitor.ts` |
+| Encryption key rotation + lazy backfill | ✅ | `src/workers/key-rotation.ts` |
+| CI pipeline (lint, typecheck, vitest, isolation, backtest, build, Playwright) | ✅ | `.github/workflows/ci.yml` |
+| Org provisioning + cohort wizards + CSV roster import | ✅ | `src/app/api/admin/orgs/`, `cohorts/`, `veterans/import/` |
+| Compliance docs (data flow, threat model, DR runbook, failover runbook) | ✅ | `docs/compliance/`, `docs/runbooks/` |
 | Design system tokens | ✅ | `tailwind.config.ts`, `src/app/globals.css` |
 | Custom components: `RiskBadge`, `CrisisResourceBanner`, `CheckInQuestion`, `DomainSparkline`, `TriageQueueItem` | ✅ | `src/components/sentinel/` |
 | Veteran app: home, check-in (with drafts), completion, trends, insights, onboarding | ✅ | `src/app/v/` |

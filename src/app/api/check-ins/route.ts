@@ -24,6 +24,7 @@ import type { CheckInRecord, CheckInResponse } from "@/lib/risk/types";
 import { CANONICAL_QUESTIONS } from "@/lib/questions/canonical";
 import { enqueueLanguageAnalysis } from "@/lib/queue/queues";
 import { withIdempotency } from "@/lib/idempotency/with-idempotency";
+import { dispatchFlagNotifications } from "@/lib/notifications/dispatch";
 
 const Body = z.object({
   weekNumber: z.number().int().min(1).max(52),
@@ -132,8 +133,9 @@ export const POST = withAuth(
             },
           });
 
+          const createdFlags: { flagId: string; severity: typeof out.flags[number]["severity"] }[] = [];
           for (const f of out.flags) {
-            await tx.flag.create({
+            const created = await tx.flag.create({
               data: {
                 organizationId,
                 veteranId: userId,
@@ -143,6 +145,23 @@ export const POST = withAuth(
                 explanation: f.explanation,
                 domainsInvolved: f.domainsInvolved,
               },
+              select: { id: true, severity: true },
+            });
+            createdFlags.push({ flagId: created.id, severity: created.severity });
+          }
+
+          // Fan out notifications inside the same transaction so a failure
+          // here rolls the whole submit. Worker drains QUEUE_NOTIFICATIONS
+          // for actual dispatch.
+          if (createdFlags.length > 0) {
+            await dispatchFlagNotifications(tx, {
+              organizationId,
+              flags: createdFlags.map((f) => ({
+                flagId: f.flagId,
+                veteranId: userId,
+                severity: f.severity,
+              })),
+              correlationId: ctx.correlationId,
             });
           }
 

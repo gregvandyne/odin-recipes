@@ -10,6 +10,7 @@
 import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { prisma } from "@/lib/db/prisma";
+import { isSuppressed } from "./suppression";
 import type { NotificationCategory } from "@prisma/client";
 
 let _resend: Resend | null = null;
@@ -56,6 +57,21 @@ export async function sendEmail(opts: SendOpts): Promise<{ id: string; sent: boo
       status: "QUEUED",
     },
   });
+
+  // Send-time suppression check. A previously-bounced address never gets
+  // another email regardless of which org/path enqueued it.
+  const suppressed = await isSuppressed(opts.to);
+  if (suppressed) {
+    await prisma.notification.update({
+      where: { id: record.id },
+      data: {
+        status: "SUPPRESSED",
+        failedAt: new Date(),
+        failureReason: `suppressed: ${suppressed.reason}`,
+      },
+    });
+    return { id: record.id, sent: false };
+  }
 
   const r = client();
   if (!r) {
