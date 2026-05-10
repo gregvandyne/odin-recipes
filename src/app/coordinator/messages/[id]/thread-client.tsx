@@ -11,9 +11,11 @@ import { toast } from "@/components/ui/toast";
  */
 export function CoordinatorThreadClient({
   threadId,
+  currentUserId,
   initialMessages,
 }: {
   threadId: string;
+  currentUserId: string;
   initialMessages: ThreadMessage[];
 }) {
   async function requestDraft(): Promise<string> {
@@ -45,6 +47,7 @@ export function CoordinatorThreadClient({
   return (
     <ThreadView
       threadId={threadId}
+      currentUserId={currentUserId}
       initialMessages={initialMessages}
       showDraftAssist
       onRequestDraft={requestDraft}

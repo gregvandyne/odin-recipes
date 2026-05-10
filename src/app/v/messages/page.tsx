@@ -103,7 +103,7 @@ export default async function VeteranMessages() {
     .toUpperCase();
 
   return (
-    <div className="-mx-6 -my-6 flex h-[calc(100dvh-8rem)] flex-col">
+    <div className="-mx-6 -my-6 flex h-[calc(100vh-8rem)] flex-col [@supports(height:100dvh)]:h-[calc(100dvh-8rem)]">
       <header className="sticky top-0 z-10 border-b border-border bg-canvas-card px-4 py-3">
         <div className="flex items-center gap-3">
           <Avatar initials={initials} size="md" />
@@ -118,7 +118,11 @@ export default async function VeteranMessages() {
           </div>
         </div>
       </header>
-      <MessageThreadClient threadId={data.threadId} initialMessages={data.messages} />
+      <MessageThreadClient
+        threadId={data.threadId}
+        currentUserId={userId}
+        initialMessages={data.messages}
+      />
     </div>
   );
 }

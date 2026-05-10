@@ -41,16 +41,22 @@ interface DisplayMsg extends Omit<ThreadMessage, "sentAt"> {
 interface Props {
   threadId: string;
   initialMessages: ThreadMessage[];
+  /**
+   * Current viewer's user id. Used to skip the SSE-triggered router.refresh
+   * for events that originated from this same user — those events arrive on
+   * the per-thread channel because we publish to every participant, but the
+   * sender's optimistic UI already shows the message locally.
+   */
+  currentUserId: string;
   showDraftAssist?: boolean;
   showCrisisFooter?: boolean;
   onRequestDraft?: () => Promise<string>;
-  /** Where to send the user when the composer is empty and they hit Esc. */
-  emptyClose?: string;
 }
 
 export function ThreadView({
   threadId,
   initialMessages,
+  currentUserId,
   showDraftAssist,
   showCrisisFooter,
   onRequestDraft,
@@ -96,12 +102,24 @@ export function ThreadView({
     let es: EventSource | null = null;
     try {
       es = new EventSource(`/api/messages/threads/${threadId}/stream`);
-      es.addEventListener("message.created", () => {
-        // Refresh the page so the server component re-renders and the
-        // client component receives fresh `initialMessages`. This is the
-        // simplest correct behavior — we don't want to fetch the message
-        // body separately because that would skip the AAD-bound decryption
-        // that already happens server-side in tenant context.
+      es.addEventListener("message.created", (e) => {
+        // Skip self-originated events. The server publishes to every thread
+        // participant; the sender's optimistic UI already rendered the
+        // bubble, and a refresh would only cause a visible re-render churn.
+        try {
+          const data = JSON.parse((e as MessageEvent).data) as {
+            payload?: { senderId?: string };
+          };
+          if (data?.payload?.senderId && data.payload.senderId === currentUserId) {
+            return;
+          }
+        } catch {
+          /* fall through and refresh — better to over-refresh than miss */
+        }
+        // Refresh so the server component re-renders and the client component
+        // receives fresh `initialMessages`. We don't fetch the body separately
+        // because that would skip the AAD-bound decryption that already
+        // happens server-side in tenant context.
         router.refresh();
       });
       es.onerror = () => {
@@ -114,7 +132,7 @@ export function ThreadView({
     return () => {
       es?.close();
     };
-  }, [threadId, router]);
+  }, [threadId, router, currentUserId]);
 
   // Re-derive from initialMessages when it changes (after router.refresh).
   React.useEffect(() => {

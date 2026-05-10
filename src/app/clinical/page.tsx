@@ -13,8 +13,13 @@ export default async function ClinicalEscalations() {
   const session = await auth();
   const orgId = (session?.user as { organizationId?: string } | undefined)?.organizationId;
   const userId = (session?.user as { id?: string } | undefined)?.id;
-  const role = (session?.user as { role?: string } | undefined)?.role ?? "CLINICAL_LEAD";
+  const role = (session?.user as { role?: string } | undefined)?.role;
   if (!orgId || !userId) redirect("/auth/sign-in");
+  // CLINICAL_LEAD + PROGRAM_MANAGER reach this surface. Coordinators land on
+  // their queue; veterans never reach a /clinical/* path.
+  if (role !== "CLINICAL_LEAD" && role !== "PROGRAM_MANAGER" && role !== "SUPER_ADMIN") {
+    redirect(role === "VETERAN" ? "/v" : "/coordinator");
+  }
 
   const escalations = await withTenant(
     { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },

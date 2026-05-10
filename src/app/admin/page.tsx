@@ -42,8 +42,14 @@ export default async function ProgramManagerDashboard() {
   const session = await auth();
   const orgId = (session?.user as { organizationId?: string } | undefined)?.organizationId;
   const userId = (session?.user as { id?: string } | undefined)?.id;
-  const role = (session?.user as { role?: string } | undefined)?.role ?? "PROGRAM_MANAGER";
+  const role = (session?.user as { role?: string } | undefined)?.role;
   if (!orgId || !userId) redirect("/auth/sign-in");
+  // PROGRAM_MANAGER + SUPER_ADMIN reach this surface. Anyone else who navigated
+  // here directly (a coordinator typing /admin into the URL bar) gets routed
+  // to their own home so we don't leak the dashboard layout.
+  if (role !== "PROGRAM_MANAGER" && role !== "SUPER_ADMIN") {
+    redirect(role === "CLINICAL_LEAD" ? "/clinical" : "/coordinator");
+  }
 
   const data = await withTenant(
     { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },

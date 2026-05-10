@@ -9,14 +9,17 @@ import { ThreadView, type ThreadMessage } from "@/components/sentinel/thread-vie
  */
 export function MessageThreadClient({
   threadId,
+  currentUserId,
   initialMessages,
 }: {
   threadId: string;
+  currentUserId: string;
   initialMessages: ThreadMessage[];
 }) {
   return (
     <ThreadView
       threadId={threadId}
+      currentUserId={currentUserId}
       initialMessages={initialMessages}
       showCrisisFooter
     />

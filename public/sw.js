@@ -21,7 +21,17 @@ const SYNC_TAG = "sentinel-outbox";
 // Routes that should be queued offline + retried when the connection returns.
 // We intentionally limit this to write paths the veteran initiates so we never
 // silently reorder reads or replay coordinator-side actions.
-const QUEUEABLE_PATHS = ["/api/check-ins", "/api/check-ins/draft", "/api/check-ins/"];
+const QUEUEABLE_PATHS = [
+  "/api/check-ins",
+  "/api/check-ins/draft",
+  "/api/check-ins/",
+  // Veteran + coordinator messaging — the composer surfaces an inline
+  // "Offline" indicator and the request is queued by URL; the optimistic
+  // UI marks the bubble pending until the replay completes.
+  "/api/messages",
+  // Coordinator contact log — same flow.
+  "/api/contacts",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

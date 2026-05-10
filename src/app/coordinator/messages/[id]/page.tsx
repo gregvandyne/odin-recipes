@@ -130,7 +130,7 @@ export default async function CoordinatorThread({
     .toUpperCase();
 
   return (
-    <div className="flex h-[calc(100dvh-3rem)] flex-col">
+    <div className="flex h-[calc(100vh-3rem)] flex-col [@supports(height:100dvh)]:h-[calc(100dvh-3rem)]">
       <header className="flex items-center gap-3 border-b border-border bg-canvas-card px-4 py-3">
         <Link
           href="/coordinator/messages"
@@ -161,6 +161,7 @@ export default async function CoordinatorThread({
       </header>
       <CoordinatorThreadClient
         threadId={data.threadId}
+        currentUserId={userId}
         initialMessages={data.messages}
       />
     </div>

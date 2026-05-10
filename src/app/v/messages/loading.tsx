@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function VeteranMessagesLoading() {
   return (
-    <div className="-mx-6 -my-6 flex h-[calc(100dvh-8rem)] flex-col">
+    <div className="-mx-6 -my-6 flex h-[calc(100vh-8rem)] flex-col [@supports(height:100dvh)]:h-[calc(100dvh-8rem)]">
       <header className="border-b border-border bg-canvas-card px-4 py-3">
         <div className="flex items-center gap-3">
           <Skeleton variant="circle" className="h-10 w-10" />

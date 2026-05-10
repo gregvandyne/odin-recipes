@@ -41,6 +41,9 @@ export default async function CoordinatorQueue() {
   const organizationId = (session?.user as { organizationId?: string } | undefined)?.organizationId;
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (!userId || !organizationId) redirect("/auth/sign-in");
+  // Coordinators, clinical leads (read-only on the queue), and program managers
+  // reach this surface. A veteran who lands here is bounced back to /v.
+  if (role === "VETERAN") redirect("/v");
 
   const isPM = role === "PROGRAM_MANAGER";
 

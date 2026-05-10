@@ -70,9 +70,14 @@ export const authConfig: NextAuthConfig = {
       });
       if (!dbUser) return session;
 
-      // Block non-ACTIVE accounts.
+      // Block non-ACTIVE accounts. We expose `accountState` on the session so
+      // server components can route the user to /auth/account-suspended with a
+      // human reason, instead of looping them to sign-in.
       if (dbUser.accountState !== "ACTIVE") {
-        return { ...session, user: { ...session.user, id: dbUser.id } };
+        return {
+          ...session,
+          user: { ...session.user, id: dbUser.id, accountState: dbUser.accountState },
+        };
       }
 
       const isStaff = STAFF_ROLES.has(dbUser.role);
@@ -91,6 +96,7 @@ export const authConfig: NextAuthConfig = {
           organizationId: dbUser.organizationId,
           isOrgAdmin: dbUser.isOrgAdmin,
           mfaEnabled: dbUser.mfaEnabled,
+          accountState: dbUser.accountState,
         },
       };
     },

@@ -28,6 +28,7 @@ export default async function VeteranTimelinePage({ params }: PageProps) {
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? "COORDINATOR";
   if (!orgId || !userId) redirect("/auth/sign-in");
+  if (role === "VETERAN") redirect("/v");
 
   const data = await withTenant(
     { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },
