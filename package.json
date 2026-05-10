@@ -13,10 +13,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:isolation": "vitest run src/__tests__/tenant-isolation.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "worker": "tsx src/workers/index.ts",
+    "backtest": "tsx scripts/backtest.ts",
+    "eval:language": "tsx scripts/eval-language-analysis.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",

@@ -24,6 +24,9 @@ export const LIMITS = {
   "auth.invitation": { capacity: 10, refillPerSecond: 10 / 3600 },   // 10 / hour
   // Application APIs.
   "api.checkin":     { capacity: 10, refillPerSecond: 10 / 600 },    // 10 / 10 min
+  "api.checkin.draft": { capacity: 600, refillPerSecond: 600 / 3600 }, // 600 / hour (10 / minute, generous)
+  "api.feedback":    { capacity: 5,  refillPerSecond: 5 / 3600 },    // 5 / hour
+  "api.flag.override": { capacity: 30, refillPerSecond: 30 / 3600 }, // 30 / hour
   "api.message":     { capacity: 60, refillPerSecond: 60 / 600 },    // 60 / 10 min
   "api.draft":       { capacity: 30, refillPerSecond: 30 / 3600 },   // 30 / hour (AI cost cap)
   "api.push":        { capacity: 20, refillPerSecond: 20 / 600 },    // 20 / 10 min

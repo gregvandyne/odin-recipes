@@ -21,6 +21,7 @@ export interface AuditEntry {
   reason?: string;
   ipAddress?: string;
   userAgent?: string;
+  correlationId?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -29,6 +30,8 @@ export async function logAudit(
   tx?: Prisma.TransactionClient,
 ): Promise<void> {
   const client = tx ?? prisma;
+  const metadata: Record<string, unknown> = { ...(entry.metadata ?? {}) };
+  if (entry.correlationId) metadata.correlationId = entry.correlationId;
   await client.auditLog.create({
     data: {
       organizationId: entry.organizationId,
@@ -40,7 +43,7 @@ export async function logAudit(
       reason: entry.reason,
       ipAddress: entry.ipAddress,
       userAgent: entry.userAgent,
-      metadata: (entry.metadata ?? {}) as Prisma.InputJsonValue,
+      metadata: metadata as Prisma.InputJsonValue,
     },
   });
 }

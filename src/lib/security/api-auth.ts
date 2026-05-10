@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { consume, ipFromRequest, type LimitName } from "./rate-limit";
+import { withCorrelation, newCorrelationId, CORRELATION_HEADER, type Logger } from "@/lib/logging/log";
 
 export type Role =
   | "SUPER_ADMIN"
@@ -32,6 +33,8 @@ export interface AuthContext {
   email: string;
   ipAddress: string;
   userAgent: string;
+  correlationId: string;
+  logger: Logger;
 }
 
 export interface WithAuthOpts {
@@ -71,6 +74,7 @@ export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextR
       return NextResponse.json({ error: "no tenant" }, { status: 403 });
     }
 
+    const correlationId = req.headers.get(CORRELATION_HEADER) ?? newCorrelationId();
     const ctx: AuthContext = {
       userId: u.id,
       role: u.role,
@@ -79,6 +83,13 @@ export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextR
       email: u.email ?? "",
       ipAddress: ipFromRequest(req.headers),
       userAgent: req.headers.get("user-agent") ?? "",
+      correlationId,
+      logger: withCorrelation(correlationId, {
+        userId: u.id,
+        role: u.role,
+        organizationId: u.organizationId ?? null,
+        path: req.nextUrl.pathname,
+      }),
     };
 
     if (opts.rateLimit) {
@@ -91,12 +102,15 @@ export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextR
             headers: {
               "Retry-After": String(Math.ceil(r.retryAfterMs / 1000)),
               "X-RateLimit-Remaining": "0",
+              [CORRELATION_HEADER]: correlationId,
             },
           },
         );
       }
     }
 
-    return handler(req, ctx);
+    const res = await handler(req, ctx);
+    res.headers.set(CORRELATION_HEADER, correlationId);
+    return res;
   };
 }

@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpRight } from "lucide-react";
+import { auth } from "@/lib/auth/config";
+import { withTenant } from "@/lib/db/tenant-context";
 
 function Metric({
   label,
@@ -29,7 +31,46 @@ function Metric({
   );
 }
 
-export default function ProgramManagerDashboard() {
+export default async function ProgramManagerDashboard() {
+  const session = await auth();
+  const orgId = (session?.user as { organizationId?: string } | undefined)?.organizationId;
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "PROGRAM_MANAGER";
+
+  const overrides = orgId && userId
+    ? await withTenant(
+        { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },
+        async (tx) => {
+          const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const rows = await tx.flag.findMany({
+            where: { severityOverrideAt: { gte: since } },
+            select: {
+              severityBeforeOverride: true,
+              severity: true,
+              severityOverrideReason: true,
+              severityOverrideAt: true,
+            },
+          });
+          const buckets = new Map<string, number>();
+          for (const r of rows) {
+            const k = `${r.severityBeforeOverride ?? "?"} → ${r.severity}`;
+            buckets.set(k, (buckets.get(k) ?? 0) + 1);
+          }
+          return {
+            total: rows.length,
+            buckets: [...buckets.entries()].sort((a, b) => b[1] - a[1]),
+            recentReasons: rows
+              .filter((r) => r.severityOverrideReason)
+              .slice(0, 5)
+              .map((r) => ({
+                key: `${r.severityBeforeOverride ?? "?"} → ${r.severity}`,
+                reason: r.severityOverrideReason!,
+              })),
+          };
+        },
+      ).catch(() => ({ total: 0, buckets: [], recentReasons: [] }))
+    : { total: 0, buckets: [] as [string, number][], recentReasons: [] as { key: string; reason: string }[] };
+
   return (
     <div className="px-6 py-6 space-y-6">
       <header className="flex items-end justify-between">
@@ -63,6 +104,62 @@ export default function ProgramManagerDashboard() {
             <Stat color="text-risk-orange" count={5}  label="Outreach" />
             <Stat color="text-risk-red"    count={1}  label="Immediate" />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-body-lg">Clinical-Lead overrides · last 30 days</CardTitle>
+          <CardDescription>
+            Surfaced as data — not auto-tuned into the engine. Use these to inform threshold
+            review, not to silently rewrite signal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {overrides.total === 0 ? (
+            <p className="text-body text-ink-secondary">
+              No overrides recorded in the last 30 days.
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <p className="text-caption uppercase tracking-wide text-ink-tertiary">
+                    Total overrides
+                  </p>
+                  <p className="mt-1 text-display font-semibold text-ink-primary">
+                    {overrides.total}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-caption uppercase tracking-wide text-ink-tertiary">
+                    Most common shift
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-body text-ink-primary">
+                    {overrides.buckets.slice(0, 4).map(([k, n]) => (
+                      <li key={k}>
+                        {k} <span className="text-ink-tertiary">× {n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              {overrides.recentReasons.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-caption uppercase tracking-wide text-ink-tertiary">
+                    Recent reasons
+                  </p>
+                  <ul className="mt-1 space-y-1.5 text-body text-ink-secondary">
+                    {overrides.recentReasons.map((r, i) => (
+                      <li key={i} className="border-l-2 border-border pl-3">
+                        <span className="text-ink-primary">{r.key}</span> · {r.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

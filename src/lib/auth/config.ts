@@ -76,9 +76,11 @@ export const authConfig: NextAuthConfig = {
       }
 
       const isStaff = STAFF_ROLES.has(dbUser.role);
+      // next-auth's `expires` field is typed as `Date & string` due to the
+      // `ISODateString` brand. Casting to the runtime ISO string is correct.
       session.expires = new Date(
         Date.now() + (isStaff ? 15 * 60 : 30 * 24 * 60 * 60) * 1000,
-      ).toISOString();
+      ).toISOString() as typeof session.expires;
 
       return {
         ...session,

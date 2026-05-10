@@ -37,55 +37,57 @@ enum MfaEnforcementLevel {
 }
 
 model Organization {
-  id                            String              @id @default(uuid()) @db.Uuid
-  slug                          String              @unique
-  name                          String
-  primaryContactEmail           String
-  organizationType              String
-  branding                      Json                @default("{}")
-  subdomain                     String?             @unique
-  status                        OrgStatus           @default(PROVISIONING)
-  testModeUntil                 DateTime?
-  createdAt                     DateTime            @default(now())
-  activatedAt                   DateTime?
-  suspendedAt                   DateTime?
-  deprovisionedAt               DateTime?
-  defaultNotificationPreferences Json               @default("{}")
-  mfaEnforcementLevel           MfaEnforcementLevel @default(REQUIRED_STAFF)
-  featureFlags                  Json                @default("{}")
-  complianceDocuments           Json                @default("[]")
-  dataRetentionPolicy           Json                @default("{}")
+  id                             String              @id @default(uuid()) @db.Uuid
+  slug                           String              @unique
+  name                           String
+  primaryContactEmail            String
+  organizationType               String
+  branding                       Json                @default("{}")
+  subdomain                      String?             @unique
+  status                         OrgStatus           @default(PROVISIONING)
+  testModeUntil                  DateTime?
+  createdAt                      DateTime            @default(now())
+  activatedAt                    DateTime?
+  suspendedAt                    DateTime?
+  deprovisionedAt                DateTime?
+  defaultNotificationPreferences Json                @default("{}")
+  mfaEnforcementLevel            MfaEnforcementLevel @default(REQUIRED_STAFF)
+  featureFlags                   Json                @default("{}")
+  complianceDocuments            Json                @default("[]")
+  dataRetentionPolicy            Json                @default("{}")
 
-  users               User[]
-  invitations         Invitation[]
-  cohorts             Cohort[]
-  veteranProfiles     VeteranProfile[]
-  checkIns            CheckIn[]
-  flags               Flag[]
-  contacts            Contact[]
-  messageThreads      MessageThread[]
-  messages            Message[]
-  escalations         ClinicalEscalation[]
-  notifications       Notification[]
-  auditLogs           AuditLog[]
-  consentRecords      ConsentRecord[]
-  questionOverrides   CheckInQuestion[]
+  users                 User[]
+  invitations           Invitation[]
+  cohorts               Cohort[]
+  veteranProfiles       VeteranProfile[]
+  checkIns              CheckIn[]
+  checkInDrafts         CheckInDraft[]
+  checkInFeedback       CheckInFeedback[]
+  flags                 Flag[]
+  contacts              Contact[]
+  messageThreads        MessageThread[]
+  messages              Message[]
+  escalations           ClinicalEscalation[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  consentRecords        ConsentRecord[]
+  questionOverrides     CheckInQuestion[]
   caseloadReassignments CaseloadReassignment[]
-  oooSchedules        CoordinatorOOO[]
-  stateTransitions    OrganizationStateTransition[]
+  oooSchedules          CoordinatorOOO[]
+  stateTransitions      OrganizationStateTransition[]
 
   @@index([status])
 }
 
 model OrganizationStateTransition {
-  id              String    @id @default(uuid()) @db.Uuid
-  organizationId  String    @db.Uuid
-  fromState       OrgStatus
-  toState         OrgStatus
-  transitionedById String?  @db.Uuid
-  transitionedAt  DateTime  @default(now())
-  reason          String?
-  metadata        Json      @default("{}")
+  id               String    @id @default(uuid()) @db.Uuid
+  organizationId   String    @db.Uuid
+  fromState        OrgStatus
+  toState          OrgStatus
+  transitionedById String?   @db.Uuid
+  transitionedAt   DateTime  @default(now())
+  reason           String?
+  metadata         Json      @default("{}")
 
   organization Organization @relation(fields: [organizationId], references: [id])
 
@@ -115,57 +117,57 @@ enum AccountState {
 }
 
 model User {
-  id                       String       @id @default(uuid()) @db.Uuid
-  organizationId           String?      @db.Uuid // null only for SUPER_ADMIN
-  email                    String
-  emailVerifiedAt          DateTime?
-  role                     UserRole
-  isOrgAdmin               Boolean      @default(false)
-  accountState             AccountState @default(INVITED)
-  accountStateChangedAt    DateTime     @default(now())
-  accountStateChangedById  String?      @db.Uuid
-  accountStateReason       String?
-  displayName              String?
-  avatarUrl                String?
-  createdAt                DateTime     @default(now())
-  lastActiveAt             DateTime?
-  mfaEnabled               Boolean      @default(false)
-  mfaMethods               Json         @default("[]")
-  consentVersion           String?
-  consentSignedAt          DateTime?
-  failedLoginAttempts      Int          @default(0)
-  lockedUntil              DateTime?
-  deactivatedAt            DateTime?
-  deactivatedById          String?      @db.Uuid
-  deactivationReason       String?
-  reactivationDeadline     DateTime?
+  id                      String       @id @default(uuid()) @db.Uuid
+  organizationId          String?      @db.Uuid // null only for SUPER_ADMIN
+  email                   String
+  emailVerifiedAt         DateTime?
+  role                    UserRole
+  isOrgAdmin              Boolean      @default(false)
+  accountState            AccountState @default(INVITED)
+  accountStateChangedAt   DateTime     @default(now())
+  accountStateChangedById String?      @db.Uuid
+  accountStateReason      String?
+  displayName             String?
+  avatarUrl               String?
+  createdAt               DateTime     @default(now())
+  lastActiveAt            DateTime?
+  mfaEnabled              Boolean      @default(false)
+  mfaMethods              Json         @default("[]")
+  consentVersion          String?
+  consentSignedAt         DateTime?
+  failedLoginAttempts     Int          @default(0)
+  lockedUntil             DateTime?
+  deactivatedAt           DateTime?
+  deactivatedById         String?      @db.Uuid
+  deactivationReason      String?
+  reactivationDeadline    DateTime?
 
-  organization        Organization?         @relation(fields: [organizationId], references: [id])
-  veteranProfile      VeteranProfile?
-  password            PasswordCredential?
-  sessions            Session[]
-  authEvents          AuthEvent[]
-  recoveryCodes       MfaRecoveryCode[]
-  invitationsSent     Invitation[]          @relation("InvitedBy")
-  notificationPrefs   NotificationPreferences?
-  notifications       Notification[]
-  consentRecords      ConsentRecord[]
-  contactsAsCoord     Contact[]             @relation("ContactCoordinator")
-  threadsAsCoord      MessageThread[]       @relation("ThreadCoordinator")
-  threadsAsVeteran    MessageThread[]       @relation("ThreadVeteran")
-  messagesSent        Message[]             @relation("MessageSender")
-  escalationsRaised   ClinicalEscalation[]  @relation("EscalatingCoordinator")
-  escalationsLed      ClinicalEscalation[]  @relation("ClinicalLead")
-  cohortsManaged      Cohort[]              @relation("CohortPM")
-  oooSchedules        CoordinatorOOO[]      @relation("OOOCoordinator")
-  oooCoverage         CoordinatorOOO[]      @relation("OOOCoverage")
-  reassignmentsFrom   CaseloadReassignment[] @relation("ReassignFrom")
-  reassignmentsTo     CaseloadReassignment[] @relation("ReassignTo")
-  reassignmentsInit   CaseloadReassignment[] @relation("ReassignInit")
-  flagsAcked          Flag[]                @relation("FlagAck")
-  checkInsReviewed    CheckIn[]             @relation("CheckInReviewer")
-  veteransAsCoord     VeteranProfile[]      @relation("VeteranCoordinator")
-  pushSubscriptions   PushSubscription[]
+  organization      Organization?            @relation(fields: [organizationId], references: [id])
+  veteranProfile    VeteranProfile?
+  password          PasswordCredential?
+  sessions          Session[]
+  authEvents        AuthEvent[]
+  recoveryCodes     MfaRecoveryCode[]
+  invitationsSent   Invitation[]             @relation("InvitedBy")
+  notificationPrefs NotificationPreferences?
+  notifications     Notification[]
+  consentRecords    ConsentRecord[]
+  contactsAsCoord   Contact[]                @relation("ContactCoordinator")
+  threadsAsCoord    MessageThread[]          @relation("ThreadCoordinator")
+  threadsAsVeteran  MessageThread[]          @relation("ThreadVeteran")
+  messagesSent      Message[]                @relation("MessageSender")
+  escalationsRaised ClinicalEscalation[]     @relation("EscalatingCoordinator")
+  escalationsLed    ClinicalEscalation[]     @relation("ClinicalLead")
+  cohortsManaged    Cohort[]                 @relation("CohortPM")
+  oooSchedules      CoordinatorOOO[]         @relation("OOOCoordinator")
+  oooCoverage       CoordinatorOOO[]         @relation("OOOCoverage")
+  reassignmentsFrom CaseloadReassignment[]   @relation("ReassignFrom")
+  reassignmentsTo   CaseloadReassignment[]   @relation("ReassignTo")
+  reassignmentsInit CaseloadReassignment[]   @relation("ReassignInit")
+  flagsAcked        Flag[]                   @relation("FlagAck")
+  checkInsReviewed  CheckIn[]                @relation("CheckInReviewer")
+  veteransAsCoord   VeteranProfile[]         @relation("VeteranCoordinator")
+  pushSubscriptions PushSubscription[]
 
   @@unique([organizationId, email])
   @@index([organizationId, role])
@@ -173,11 +175,11 @@ model User {
 }
 
 model PasswordCredential {
-  userId             String    @id @db.Uuid
-  passwordHash       String
-  updatedAt          DateTime  @updatedAt
-  breachCheckedAt    DateTime?
-  breachCheckResult  Boolean?
+  userId            String    @id @db.Uuid
+  passwordHash      String
+  updatedAt         DateTime  @updatedAt
+  breachCheckedAt   DateTime?
+  breachCheckResult Boolean?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -289,21 +291,21 @@ model Invitation {
 // =============================================================================
 
 model CaseloadReassignment {
-  id                 String    @id @default(uuid()) @db.Uuid
-  organizationId     String    @db.Uuid
-  fromCoordinatorId  String    @db.Uuid
-  toCoordinatorId    String    @db.Uuid
-  reason             String
-  veteranIds         String[]  @db.Uuid
-  initiatedById      String    @db.Uuid
-  initiatedAt        DateTime  @default(now())
-  completedAt        DateTime?
-  veteransNotified   Boolean   @default(false)
+  id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @db.Uuid
+  fromCoordinatorId String    @db.Uuid
+  toCoordinatorId   String    @db.Uuid
+  reason            String
+  veteranIds        String[]  @db.Uuid
+  initiatedById     String    @db.Uuid
+  initiatedAt       DateTime  @default(now())
+  completedAt       DateTime?
+  veteransNotified  Boolean   @default(false)
 
   organization    Organization @relation(fields: [organizationId], references: [id])
   fromCoordinator User         @relation("ReassignFrom", fields: [fromCoordinatorId], references: [id])
-  toCoordinator   User         @relation("ReassignTo",   fields: [toCoordinatorId],   references: [id])
-  initiatedBy     User         @relation("ReassignInit", fields: [initiatedById],     references: [id])
+  toCoordinator   User         @relation("ReassignTo", fields: [toCoordinatorId], references: [id])
+  initiatedBy     User         @relation("ReassignInit", fields: [initiatedById], references: [id])
 
   @@index([organizationId])
 }
@@ -320,24 +322,24 @@ enum VeteranStatus {
 }
 
 model VeteranProfile {
-  userId                    String        @id @db.Uuid
-  organizationId            String        @db.Uuid
-  cohortId                  String        @db.Uuid
-  separationDate            DateTime
-  branchOfService           String
-  yearsOfService            Int?
-  assignedCoordinatorId     String?       @db.Uuid
-  emergencyContactName      String?
-  emergencyContactPhone     String?
-  emergencyContactConsent   Boolean       @default(false)
-  localVAFacility           String?
-  localCrisisResources      Json          @default("[]")
-  programStartDate          DateTime
-  programEndDate            DateTime
-  status                    VeteranStatus @default(ACTIVE)
-  timezone                  String        @default("America/New_York")
-  checkInDayOfWeek          Int           @default(0) // 0 = Sunday
-  checkInLocalTime          String        @default("18:00")
+  userId                  String        @id @db.Uuid
+  organizationId          String        @db.Uuid
+  cohortId                String        @db.Uuid
+  separationDate          DateTime
+  branchOfService         String
+  yearsOfService          Int?
+  assignedCoordinatorId   String?       @db.Uuid
+  emergencyContactName    String?
+  emergencyContactPhone   String?
+  emergencyContactConsent Boolean       @default(false)
+  localVAFacility         String?
+  localCrisisResources    Json          @default("[]")
+  programStartDate        DateTime
+  programEndDate          DateTime
+  status                  VeteranStatus @default(ACTIVE)
+  timezone                String        @default("America/New_York")
+  checkInDayOfWeek        Int           @default(0) // 0 = Sunday
+  checkInLocalTime        String        @default("18:00")
 
   user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization        Organization @relation(fields: [organizationId], references: [id])
@@ -433,29 +435,98 @@ enum RiskLevel {
 }
 
 model CheckIn {
-  id                     String     @id @default(uuid()) @db.Uuid
-  organizationId         String     @db.Uuid
-  veteranId              String     @db.Uuid
-  weekNumber             Int
-  submittedAt            DateTime   @default(now())
-  responses              Json       // [{ questionId, domainCode, value, skipped }]
-  openEndedResponse      String?    // encrypted at app layer
-  aiAnalysis             Json?      // { promptVersion, model, markers[], confidence, recommendedSeverity }
-  riskScore              Float?
-  riskLevel              RiskLevel?
-  reviewedByCoordinatorId String?   @db.Uuid
-  reviewedAt             DateTime?
-  engineVersion          String     @default("v1.0.0")
-  // Immutable after submission. Corrections are new check-ins flagged via metadata.
-  correctsCheckInId      String?    @db.Uuid
+  id                      String     @id @default(uuid()) @db.Uuid
+  organizationId          String     @db.Uuid
+  veteranId               String     @db.Uuid
+  weekNumber              Int
+  submittedAt             DateTime   @default(now())
+  responses               Json // [{ questionId, domainCode, value, skipped }]
+  openEndedResponse       String? // encrypted at app layer
+  aiAnalysis              Json? // { promptVersion, model, markers[], confidence, recommendedSeverity }
+  aiPending               Boolean    @default(false)
+  aiAnalysisFailedAt      DateTime?
+  aiAnalysisFailureReason String?
+  riskScore               Float?
+  riskLevel               RiskLevel?
+  reviewedByCoordinatorId String?    @db.Uuid
+  reviewedAt              DateTime?
+  engineVersion           String     @default("v1.0.0")
+  // Append-only response payload. Analysis fields are mutable so the layer-4
+  // worker can write back results when the AI call completes.
+  correctsCheckInId       String?    @db.Uuid
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  reviewer     User?        @relation("CheckInReviewer", fields: [reviewedByCoordinatorId], references: [id])
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  reviewer     User?             @relation("CheckInReviewer", fields: [reviewedByCoordinatorId], references: [id])
   flags        Flag[]
+  feedback     CheckInFeedback[]
 
   @@unique([veteranId, weekNumber, submittedAt])
   @@index([organizationId, veteranId, submittedAt])
   @@index([riskLevel])
+  @@index([aiPending])
+}
+
+// =============================================================================
+// CHECK-IN DRAFTS — save-and-resume across sessions and devices.
+// One draft per (veteranId, weekNumber). Mutable. Deleted on submit.
+// =============================================================================
+
+model CheckInDraft {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @db.Uuid
+  veteranId         String   @db.Uuid
+  weekNumber        Int
+  responses         Json     @default("[]")
+  openEndedResponse String?
+  lastUpdatedAt     DateTime @default(now()) @updatedAt
+  createdAt         DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([veteranId, weekNumber])
+  @@index([organizationId, veteranId])
+}
+
+// =============================================================================
+// CHECK-IN FEEDBACK — veteran "this isn't the full picture" disagree input.
+// Surfaced to the coordinator on the per-veteran timeline.
+// =============================================================================
+
+model CheckInFeedback {
+  id                          String    @id @default(uuid()) @db.Uuid
+  organizationId              String    @db.Uuid
+  checkInId                   String    @db.Uuid
+  veteranId                   String    @db.Uuid
+  body                        String
+  createdAt                   DateTime  @default(now())
+  acknowledgedByCoordinatorId String?   @db.Uuid
+  acknowledgedAt              DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  checkIn      CheckIn      @relation(fields: [checkInId], references: [id])
+
+  @@index([organizationId, checkInId])
+  @@index([organizationId, veteranId, createdAt])
+}
+
+// =============================================================================
+// IDEMPOTENCY — every state-changing route accepts an Idempotency-Key header.
+// 24h TTL. Repeated submissions return the cached response.
+// =============================================================================
+
+model IdempotencyRecord {
+  key            String   @id
+  organizationId String?  @db.Uuid
+  userId         String   @db.Uuid
+  route          String
+  requestHash    String
+  response       Json
+  statusCode     Int
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 // =============================================================================
@@ -471,25 +542,27 @@ enum FlagType {
 }
 
 model Flag {
-  id                       String    @id @default(uuid()) @db.Uuid
-  organizationId           String    @db.Uuid
-  veteranId                String    @db.Uuid
-  checkInId                String?   @db.Uuid
-  flagType                 FlagType
-  severity                 RiskLevel
-  explanation              String
-  domainsInvolved          DomainCode[]
-  createdAt                DateTime  @default(now())
-  acknowledgedByCoordinatorId String? @db.Uuid
-  acknowledgedAt           DateTime?
-  resolution               Json?
-  resolvedAt               DateTime?
-  severityOverrideById     String?   @db.Uuid
-  severityOverrideReason   String?
+  id                          String       @id @default(uuid()) @db.Uuid
+  organizationId              String       @db.Uuid
+  veteranId                   String       @db.Uuid
+  checkInId                   String?      @db.Uuid
+  flagType                    FlagType
+  severity                    RiskLevel
+  explanation                 String
+  domainsInvolved             DomainCode[]
+  createdAt                   DateTime     @default(now())
+  acknowledgedByCoordinatorId String?      @db.Uuid
+  acknowledgedAt              DateTime?
+  resolution                  Json?
+  resolvedAt                  DateTime?
+  severityOverrideById        String?      @db.Uuid
+  severityOverrideReason      String?
+  severityOverrideAt          DateTime?
+  severityBeforeOverride      RiskLevel?
 
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  checkIn           CheckIn?     @relation(fields: [checkInId], references: [id])
-  acknowledgedBy    User?        @relation("FlagAck", fields: [acknowledgedByCoordinatorId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  checkIn        CheckIn?     @relation(fields: [checkInId], references: [id])
+  acknowledgedBy User?        @relation("FlagAck", fields: [acknowledgedByCoordinatorId], references: [id])
 
   @@index([organizationId, veteranId, createdAt])
   @@index([severity, acknowledgedAt])
@@ -510,17 +583,17 @@ enum ContactDirection {
 }
 
 model Contact {
-  id              String           @id @default(uuid()) @db.Uuid
-  organizationId  String           @db.Uuid
-  veteranId       String           @db.Uuid
-  coordinatorId   String           @db.Uuid
-  contactType     ContactType
-  direction       ContactDirection
-  summary         String           // encrypted at app layer
-  followUpRequired Boolean         @default(false)
-  followUpBy      DateTime?
-  createdAt       DateTime         @default(now())
-  editableUntil   DateTime         // 24h from creation, set at insert
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @db.Uuid
+  veteranId        String           @db.Uuid
+  coordinatorId    String           @db.Uuid
+  contactType      ContactType
+  direction        ContactDirection
+  summary          String // encrypted at app layer
+  followUpRequired Boolean          @default(false)
+  followUpBy       DateTime?
+  createdAt        DateTime         @default(now())
+  editableUntil    DateTime // 24h from creation, set at insert
 
   organization Organization @relation(fields: [organizationId], references: [id])
   coordinator  User         @relation("ContactCoordinator", fields: [coordinatorId], references: [id])
@@ -536,21 +609,21 @@ enum EscalationStatus {
 }
 
 model ClinicalEscalation {
-  id                       String           @id @default(uuid()) @db.Uuid
-  organizationId           String           @db.Uuid
-  veteranId                String           @db.Uuid
-  escalatingCoordinatorId  String           @db.Uuid
-  clinicalLeadId           String?          @db.Uuid
-  triggeredByFlagId        String?          @db.Uuid
-  consultNotes             String?          // encrypted
-  recommendedAction        String?
-  status                   EscalationStatus @default(PENDING)
-  createdAt                DateTime         @default(now())
-  closedAt                 DateTime?
+  id                      String           @id @default(uuid()) @db.Uuid
+  organizationId          String           @db.Uuid
+  veteranId               String           @db.Uuid
+  escalatingCoordinatorId String           @db.Uuid
+  clinicalLeadId          String?          @db.Uuid
+  triggeredByFlagId       String?          @db.Uuid
+  consultNotes            String? // encrypted
+  recommendedAction       String?
+  status                  EscalationStatus @default(PENDING)
+  createdAt               DateTime         @default(now())
+  closedAt                DateTime?
 
-  organization        Organization @relation(fields: [organizationId], references: [id])
-  escalatingCoordinator User       @relation("EscalatingCoordinator", fields: [escalatingCoordinatorId], references: [id])
-  clinicalLead        User?        @relation("ClinicalLead", fields: [clinicalLeadId], references: [id])
+  organization          Organization @relation(fields: [organizationId], references: [id])
+  escalatingCoordinator User         @relation("EscalatingCoordinator", fields: [escalatingCoordinatorId], references: [id])
+  clinicalLead          User?        @relation("ClinicalLead", fields: [clinicalLeadId], references: [id])
 
   @@index([organizationId, status])
 }
@@ -574,7 +647,7 @@ model MessageThread {
   status         ThreadStatus @default(ACTIVE)
 
   organization Organization @relation(fields: [organizationId], references: [id])
-  veteran      User         @relation("ThreadVeteran",     fields: [veteranId],     references: [id])
+  veteran      User         @relation("ThreadVeteran", fields: [veteranId], references: [id])
   coordinator  User         @relation("ThreadCoordinator", fields: [coordinatorId], references: [id])
   messages     Message[]
 
@@ -588,16 +661,16 @@ enum SenderRole {
 }
 
 model Message {
-  id               String     @id @default(uuid()) @db.Uuid
-  organizationId   String     @db.Uuid
-  threadId         String     @db.Uuid
-  senderId         String     @db.Uuid
-  senderRole       SenderRole
-  bodyEncrypted    String
-  sentAt           DateTime   @default(now())
-  readAt           DateTime?
-  aiAssistedDraft  Boolean    @default(false)
-  aiPromptVersion  String?
+  id              String     @id @default(uuid()) @db.Uuid
+  organizationId  String     @db.Uuid
+  threadId        String     @db.Uuid
+  senderId        String     @db.Uuid
+  senderRole      SenderRole
+  bodyEncrypted   String
+  sentAt          DateTime   @default(now())
+  readAt          DateTime?
+  aiAssistedDraft Boolean    @default(false)
+  aiPromptVersion String?
 
   organization Organization  @relation(fields: [organizationId], references: [id])
   thread       MessageThread @relation(fields: [threadId], references: [id])
@@ -617,7 +690,7 @@ model CoordinatorOOO {
 
   organization        Organization @relation(fields: [organizationId], references: [id])
   coordinator         User         @relation("OOOCoordinator", fields: [coordinatorId], references: [id])
-  coverageCoordinator User?        @relation("OOOCoverage",    fields: [coverageCoordinatorId], references: [id])
+  coverageCoordinator User?        @relation("OOOCoverage", fields: [coverageCoordinatorId], references: [id])
 
   @@index([organizationId, coordinatorId])
 }
@@ -696,15 +769,15 @@ model NotificationPreferences {
 }
 
 model PushSubscription {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String?  @db.Uuid
-  userId         String   @db.Uuid
-  endpoint       String   @unique
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @db.Uuid
+  userId         String    @db.Uuid
+  endpoint       String    @unique
   p256dh         String
   auth           String
   userAgent      String?
-  createdAt      DateTime @default(now())
-  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
   revokedAt      DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -738,13 +811,13 @@ model AuditLog {
 }
 
 model ConsentRecord {
-  id                   String   @id @default(uuid()) @db.Uuid
-  userId               String   @db.Uuid
-  organizationId       String   @db.Uuid
-  consentVersion       String
-  signedAt             DateTime @default(now())
-  ipAddress            String?
-  consentDocumentHash  String
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @db.Uuid
+  organizationId      String   @db.Uuid
+  consentVersion      String
+  signedAt            DateTime @default(now())
+  ipAddress           String?
+  consentDocumentHash String
 
   user         User         @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])

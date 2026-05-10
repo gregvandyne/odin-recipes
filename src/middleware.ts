@@ -39,11 +39,22 @@ export function middleware(req: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV !== "production";
 
+  // Correlation id: trust an upstream value if present (load balancer, cron),
+  // otherwise mint one. Either way every API route, audit log entry, AI call
+  // and worker job downstream of this request can quote it.
+  const incomingCorrelationId = req.headers.get("x-correlation-id");
+  const correlationId =
+    incomingCorrelationId && /^[a-zA-Z0-9_-]{8,128}$/.test(incomingCorrelationId)
+      ? incomingCorrelationId
+      : crypto.randomUUID();
+
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("x-correlation-id", correlationId);
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
 
+  res.headers.set("x-correlation-id", correlationId);
   res.headers.set("Content-Security-Policy", buildCsp(nonce, isDev));
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
     res.headers.set(k, v);

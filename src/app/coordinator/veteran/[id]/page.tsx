@@ -6,7 +6,9 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DomainCode, RiskLevel } from "@/lib/risk/types";
-import { AlertTriangle, MessageSquare, Phone, Calendar, ArrowUpRight, Sparkles } from "lucide-react";
+import { AlertTriangle, MessageSquare, Phone, Calendar, ArrowUpRight, Sparkles, AlertCircle, MessageCircleWarning } from "lucide-react";
+import { auth } from "@/lib/auth/config";
+import { withTenant } from "@/lib/db/tenant-context";
 
 interface PageProps { params: { id: string } }
 
@@ -38,7 +40,7 @@ const recentTimeline = [
   { week: 6, kind: "checkin",  riskLevel: "GREEN" as RiskLevel,  summary: "Stable across domains." },
 ];
 
-export default function VeteranTimelinePage({ params }: PageProps) {
+export default async function VeteranTimelinePage({ params }: PageProps) {
   const veteran = {
     id: params.id,
     name: "PO2 J. Reed",
@@ -48,6 +50,41 @@ export default function VeteranTimelinePage({ params }: PageProps) {
     coordinator: "S. Kim",
     riskLevel: "ORANGE" as RiskLevel,
   };
+
+  const session = await auth();
+  const orgId = (session?.user as { organizationId?: string } | undefined)?.organizationId;
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "COORDINATOR";
+
+  // Pull real degradation banners + recent veteran feedback for this veteran.
+  // If the session isn't a real coordinator session (e.g. screenshot capture),
+  // fall back to empty arrays so the mock-driven UI still renders.
+  const live = orgId && userId
+    ? await withTenant(
+        { organizationId: orgId, userId, userRole: role, isOrgAdmin: false },
+        async (tx) => {
+          const aiFailed = await tx.checkIn.findMany({
+            where: { veteranId: params.id, aiAnalysisFailedAt: { not: null } },
+            orderBy: { submittedAt: "desc" },
+            take: 4,
+            select: { id: true, submittedAt: true, weekNumber: true, aiAnalysisFailureReason: true },
+          });
+          const aiPending = await tx.checkIn.findMany({
+            where: { veteranId: params.id, aiPending: true },
+            orderBy: { submittedAt: "desc" },
+            take: 4,
+            select: { id: true, submittedAt: true, weekNumber: true },
+          });
+          const feedback = await tx.checkInFeedback.findMany({
+            where: { veteranId: params.id, acknowledgedAt: null },
+            orderBy: { createdAt: "desc" },
+            take: 6,
+            select: { id: true, createdAt: true, body: true, checkInId: true },
+          });
+          return { aiFailed, aiPending, feedback };
+        },
+      ).catch(() => ({ aiFailed: [], aiPending: [], feedback: [] }))
+    : { aiFailed: [], aiPending: [], feedback: [] };
 
   return (
     <div className="px-6 py-6">
@@ -68,6 +105,74 @@ export default function VeteranTimelinePage({ params }: PageProps) {
         </div>
         <RiskBadge level={veteran.riskLevel} />
       </header>
+
+      {(live.aiFailed.length > 0 || live.aiPending.length > 0) && (
+        <div className="mb-4 space-y-2">
+          {live.aiFailed.map((c) => (
+            <div
+              key={c.id}
+              className="flex items-start gap-3 rounded-md border border-risk-orange/40 bg-risk-orange/5 p-4 text-body"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-risk-orange" aria-hidden />
+              <div>
+                <p className="font-semibold text-ink-primary">
+                  Language analysis unavailable for week {c.weekNumber}
+                </p>
+                <p className="mt-0.5 text-ink-secondary">
+                  Review the open-ended response manually.
+                  {c.aiAnalysisFailureReason ? ` (${c.aiAnalysisFailureReason})` : ""}
+                </p>
+              </div>
+            </div>
+          ))}
+          {live.aiPending.map((c) => (
+            <div
+              key={c.id}
+              className="flex items-start gap-3 rounded-md border border-border bg-canvas-banded p-4 text-body"
+            >
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ink-tertiary" aria-hidden />
+              <div>
+                <p className="font-semibold text-ink-primary">
+                  Layer-4 analysis pending for week {c.weekNumber}
+                </p>
+                <p className="mt-0.5 text-ink-secondary">
+                  Risk score will refresh automatically when analysis completes.
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {live.feedback.length > 0 && (
+        <Card className="mb-4 border-primary/30 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              <MessageCircleWarning className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <div>
+                <CardTitle className="text-body-lg">Veteran adds context</CardTitle>
+                <CardDescription className="mt-1">
+                  This veteran disagrees with how a recent check-in was interpreted. Acknowledge it
+                  before next outreach.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {live.feedback.map((f) => (
+              <blockquote
+                key={f.id}
+                className="border-l-2 border-primary/40 pl-3 text-body text-ink-primary"
+              >
+                "{f.body}"
+                <footer className="mt-1 text-caption text-ink-tertiary">
+                  {f.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </footer>
+              </blockquote>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 space-y-4 lg:col-span-8">
