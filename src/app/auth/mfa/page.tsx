@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
@@ -36,9 +35,7 @@ export default async function MfaChallengePage({
           code instead.
         </p>
       </header>
-      <Suspense fallback={null}>
-        <MfaChallengeForm next={searchParams.next ?? "/coordinator"} />
-      </Suspense>
+      <MfaChallengeForm next={searchParams.next ?? "/coordinator"} />
       <p className="mt-8 text-caption text-ink-tertiary">
         Locked out?{" "}
         <Link

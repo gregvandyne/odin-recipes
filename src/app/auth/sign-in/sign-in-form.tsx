@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, KeyRound, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,14 @@ import { toast } from "@/components/ui/toast";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function SignInForm() {
+interface Props {
+  initialEmail: string;
+  callbackUrl: string;
+}
+
+export function SignInForm({ initialEmail, callbackUrl }: Props) {
   const router = useRouter();
-  const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") ?? "/v";
-  const [email, setEmail] = useState(params.get("email") ?? "");
+  const [email, setEmail] = useState(initialEmail);
   const [emailTouched, setEmailTouched] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordOpen, setPasswordOpen] = useState(false);
