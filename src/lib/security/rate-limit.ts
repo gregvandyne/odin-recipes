@@ -138,9 +138,30 @@ async function consumeRedis(
   }
 }
 
-/** Convenience: pull the requesting IP from a Next.js request. */
+/**
+ * Convenience: pull the requesting IP from a Next.js request.
+ *
+ * Trust model: production traffic always reaches Next.js through a
+ * reverse proxy (Vercel edge, Cloudflare, nginx). The proxy sets
+ * `x-forwarded-for` and/or `x-real-ip`; direct-to-origin requests are
+ * blocked at the platform layer so a client cannot forge these.
+ *
+ * If neither header is present (true direct access from the client, only
+ * possible in dev / behind no proxy), we return "unknown" rather than
+ * blanket-keying everything to one bucket.
+ *
+ * The returned value is clamped to a sane length so a malicious client
+ * can't grow Redis keys with arbitrarily long XFF chains.
+ */
+const MAX_IP_LEN = 64;
+
 export function ipFromRequest(headers: Headers): string {
   const xff = headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]!.trim();
-  return headers.get("x-real-ip") ?? "unknown";
+  if (xff) {
+    const first = xff.split(",")[0]!.trim();
+    return first.slice(0, MAX_IP_LEN);
+  }
+  const real = headers.get("x-real-ip");
+  if (real) return real.slice(0, MAX_IP_LEN);
+  return "unknown";
 }

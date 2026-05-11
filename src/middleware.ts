@@ -63,9 +63,20 @@ export function middleware(req: NextRequest) {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
     res.headers.set(k, v);
   }
-  // Honor signed-out users: do not cache authenticated pages on intermediaries.
-  if (req.nextUrl.pathname.startsWith("/v/") || req.nextUrl.pathname.startsWith("/coordinator/") ||
-      req.nextUrl.pathname.startsWith("/clinical/") || req.nextUrl.pathname.startsWith("/admin/")) {
+  // Authenticated + sensitive surfaces must never sit in a shared cache. The
+  // /account/* + /auth/* trees are also private (account settings, MFA setup,
+  // sign-in flow with potential email pre-fill) and can carry user-bound
+  // state in the response.
+  const p = req.nextUrl.pathname;
+  if (
+    p.startsWith("/v/") ||
+    p.startsWith("/coordinator/") ||
+    p.startsWith("/clinical/") ||
+    p.startsWith("/admin/") ||
+    p.startsWith("/account/") ||
+    p.startsWith("/auth/") ||
+    p.startsWith("/api/")
+  ) {
     res.headers.set("Cache-Control", "private, no-store");
   }
   return res;

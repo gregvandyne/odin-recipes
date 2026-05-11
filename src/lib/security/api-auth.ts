@@ -70,47 +70,10 @@ type Handler = (req: NextRequest, ctx: AuthContext) => Promise<NextResponse | Re
  */
 const STATE_CHANGING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-/**
- * Verify the request is same-origin. Defense-in-depth on top of NextAuth's
- * session-cookie CSRF protection and the strict SameSite=Lax cookie default.
- *
- * We check Origin first (modern browsers always send it for cross-origin
- * state-changing requests); fall back to Referer for clients that strip
- * Origin (some corporate proxies do). If neither header is present we
- * reject — a same-origin browser request to a JSON API always carries one
- * of them.
- *
- * AUTH_URL is the canonical host. We accept exactly that origin.
- */
-function isSameOrigin(req: NextRequest): boolean {
-  const expected = process.env.AUTH_URL;
-  if (!expected) return true; // local dev, no canonical URL configured
-  let allowed: URL;
-  try {
-    allowed = new URL(expected);
-  } catch {
-    return true;
-  }
-  const origin = req.headers.get("origin");
-  if (origin) {
-    try {
-      const u = new URL(origin);
-      return u.host === allowed.host && u.protocol === allowed.protocol;
-    } catch {
-      return false;
-    }
-  }
-  const referer = req.headers.get("referer");
-  if (referer) {
-    try {
-      const u = new URL(referer);
-      return u.host === allowed.host && u.protocol === allowed.protocol;
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
+// Same-origin CSRF guard lives in `./same-origin` so it can be unit-tested
+// without importing the auth pipeline. Re-exported here for convenience.
+import { isSameOrigin } from "./same-origin";
+export { isSameOrigin };
 
 export function withAuth(handler: Handler, opts: WithAuthOpts = {}): (req: NextRequest) => Promise<Response> {
   return async (req: NextRequest) => {
