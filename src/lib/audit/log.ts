@@ -84,6 +84,7 @@ export const AUDIT_ACTIONS = {
   MFA_CHALLENGE_SUCCESS: "auth.mfa.challenge_success",
   MFA_CHALLENGE_FAILURE: "auth.mfa.challenge_failure",
   MFA_DISABLE: "auth.mfa.disable",
+  LOCKOUT: "auth.account.lockout",
   SESSION_REVOKED: "auth.session.revoked",
   SESSION_REVOKED_ALL: "auth.session.revoked_all",
   EMAIL_SUPPRESSED: "email.suppressed",

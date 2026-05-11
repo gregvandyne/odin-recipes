@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runCheckinInviteSweep } from "@/workers/checkin-invite-cron";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { withCorrelation, newCorrelationId, CORRELATION_HEADER } from "@/lib/logging/log";
+import { constantTimeEqual } from "@/lib/security/encryption";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,7 +47,9 @@ async function handle(req: NextRequest): Promise<NextResponse> {
 
   const auth = req.headers.get("authorization") ?? "";
   const provided = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : auth;
-  if (provided !== expected) {
+  // Constant-time compare so an attacker can't probe the secret byte-by-byte
+  // via response-time differences.
+  if (!constantTimeEqual(provided, expected)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -16,22 +16,41 @@ import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import type { AuditLog } from "@prisma/client";
 
 const CHUNK_SIZE = 1000;
+const MAX_WINDOW_MS = 92 * 86_400_000; // 92 days — slightly over a quarter
 
 export const GET = withAuth(
   async (req: NextRequest, ctx) => {
     if (!ctx.organizationId) return new Response("no tenant", { status: 403 });
     const url = new URL(req.url);
-    const from = url.searchParams.get("from");
-    const to = url.searchParams.get("to");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
     const action = url.searchParams.get("action") ?? undefined;
     const actorId = url.searchParams.get("actorId") ?? undefined;
 
+    // Validate the window:
+    //   - reject malformed dates
+    //   - reject inverted ranges
+    //   - cap the span to MAX_WINDOW_MS so a misclick can't pull years of rows
+    const toDate = toParam ? new Date(toParam) : new Date();
+    const fromDate = fromParam
+      ? new Date(fromParam)
+      : new Date(Date.now() - 30 * 86_400_000);
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+      return new Response("invalid date range", { status: 400 });
+    }
+    if (fromDate.getTime() > toDate.getTime()) {
+      return new Response("invalid date range", { status: 400 });
+    }
+    if (toDate.getTime() - fromDate.getTime() > MAX_WINDOW_MS) {
+      return new Response(
+        `window too wide; max ${Math.round(MAX_WINDOW_MS / 86_400_000)} days per export`,
+        { status: 400 },
+      );
+    }
+
     const where = {
       organizationId: ctx.organizationId,
-      timestamp: {
-        gte: from ? new Date(from) : new Date(Date.now() - 30 * 86_400_000),
-        lte: to ? new Date(to) : new Date(),
-      },
+      timestamp: { gte: fromDate, lte: toDate },
       ...(action ? { action } : {}),
       ...(actorId ? { actorId } : {}),
     };
@@ -45,7 +64,12 @@ export const GET = withAuth(
       ipAddress: ctx.ipAddress,
       userAgent: ctx.userAgent,
       correlationId: ctx.correlationId,
-      metadata: { from, to, action, actorId },
+      metadata: {
+        from: fromDate.toISOString(),
+        to: toDate.toISOString(),
+        action,
+        actorId,
+      },
     });
 
     const stream = new ReadableStream<Uint8Array>({

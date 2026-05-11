@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth/config";
+import { safeNextPath } from "@/lib/security/safe-redirect";
 import { MfaChallengeForm } from "./challenge-form";
 
 /**
@@ -35,7 +36,7 @@ export default async function MfaChallengePage({
           code instead.
         </p>
       </header>
-      <MfaChallengeForm next={searchParams.next ?? "/coordinator"} />
+      <MfaChallengeForm next={safeNextPath(searchParams.next, "/coordinator")} />
       <p className="mt-8 text-caption text-ink-tertiary">
         Locked out?{" "}
         <Link

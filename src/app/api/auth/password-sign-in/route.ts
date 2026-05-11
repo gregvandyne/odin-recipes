@@ -19,11 +19,24 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { verifyPassword, checkHibpBreach } from "@/lib/auth/password";
 import { consume, ipFromRequest } from "@/lib/security/rate-limit";
+import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 
 const Body = z.object({
   email: z.string().email().max(254),
   password: z.string().min(1).max(256),
 });
+
+/**
+ * Account lockout: after N consecutive failed password attempts, set
+ * `lockedUntil` to (now + LOCKOUT_MS). The lockout windows compound so a
+ * sustained brute-force attempt locks the account for hours, not seconds,
+ * while a legitimate "forgot password" user clears in 15 minutes.
+ *
+ * Counter resets to 0 on any successful sign-in.
+ */
+const LOCKOUT_THRESHOLD = 6;
+const LOCKOUT_BASE_MS = 15 * 60 * 1000;
+const LOCKOUT_MAX_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(req: Request) {
   const headers = new Headers(req.headers);
@@ -70,15 +83,43 @@ export async function POST(req: Request) {
   }
   const ok = await verifyPassword(parsed.password, user.password.passwordHash);
   if (!ok) {
-    await prisma.user.update({
+    // Increment the counter; lock the account if we crossed the threshold.
+    // Lock duration backs off exponentially up to LOCKOUT_MAX_MS so a
+    // sustained brute-force gets shut out, while a legitimate user who
+    // mistypes a few times waits 15 minutes.
+    const updated = await prisma.user.update({
       where: { id: user.id },
       data: { failedLoginAttempts: { increment: 1 } },
+      select: { failedLoginAttempts: true },
     });
+    if (updated.failedLoginAttempts >= LOCKOUT_THRESHOLD) {
+      const overage = updated.failedLoginAttempts - LOCKOUT_THRESHOLD;
+      const lockMs = Math.min(LOCKOUT_BASE_MS * 2 ** overage, LOCKOUT_MAX_MS);
+      const lockedUntil = new Date(Date.now() + lockMs);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lockedUntil },
+      });
+      await logAudit({
+        organizationId: user.organizationId,
+        actorId: null,
+        actorRole: "SYSTEM",
+        action: AUDIT_ACTIONS.LOCKOUT,
+        resourceType: "User",
+        resourceId: user.id,
+        ipAddress: ip,
+        metadata: { failedAttempts: updated.failedLoginAttempts, lockMs },
+      });
+      return NextResponse.json(
+        { error: "account_locked", lockedUntil: lockedUntil.toISOString() },
+        { status: 423 },
+      );
+    }
     return NextResponse.json({ error: "invalid credentials" }, { status: 401 });
   }
   await prisma.user.update({
     where: { id: user.id },
-    data: { failedLoginAttempts: 0, lastActiveAt: new Date() },
+    data: { failedLoginAttempts: 0, lastActiveAt: new Date(), lockedUntil: null },
   });
 
   // Background breach check — non-blocking. If the password was found in

@@ -22,10 +22,22 @@ interface ResendEvent {
   };
 }
 
+// Resend webhook bodies are small JSON envelopes. Cap the read so a
+// malformed sender can't make us materialize an arbitrarily large string.
+const MAX_BODY_BYTES = 64 * 1024;
+
 export async function POST(req: NextRequest) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   const signature = req.headers.get("svix-signature") ?? req.headers.get("resend-signature") ?? "";
+  // Reject oversize payloads cheaply via Content-Length when present.
+  const lenHeader = req.headers.get("content-length");
+  if (lenHeader && Number(lenHeader) > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "payload too large" }, { status: 413 });
+  }
   const body = await req.text();
+  if (body.length > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "payload too large" }, { status: 413 });
+  }
 
   if (!secret) return NextResponse.json({ error: "webhook not configured" }, { status: 503 });
   if (!verifyHmac({ body, signature, secret })) {
