@@ -1,11 +1,12 @@
 import { StaffSidebar } from "@/components/sentinel/staff-sidebar";
 import { CommandPaletteHost } from "@/components/sentinel/command-palette-host";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
-import { requireActiveSession } from "@/lib/auth/require-session";
+import { requireActiveSession, requireMfaIfRequired } from "@/lib/auth/require-session";
 import { prisma } from "@/lib/db/prisma";
 
 export default async function ClinicalLayout({ children }: { children: React.ReactNode }) {
   const u = await requireActiveSession();
+  await requireMfaIfRequired(u);
   const profile = await prisma.user.findUnique({
     where: { id: u.id },
     select: { displayName: true, email: true },

@@ -1,7 +1,7 @@
 import { StaffSidebar } from "@/components/sentinel/staff-sidebar";
 import { CommandPaletteHost } from "@/components/sentinel/command-palette-host";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
-import { requireActiveSession } from "@/lib/auth/require-session";
+import { requireActiveSession, requireMfaIfRequired } from "@/lib/auth/require-session";
 import { prisma } from "@/lib/db/prisma";
 
 /**
@@ -17,6 +17,7 @@ import { prisma } from "@/lib/db/prisma";
  */
 export default async function CoordinatorLayout({ children }: { children: React.ReactNode }) {
   const u = await requireActiveSession();
+  await requireMfaIfRequired(u);
   // Look up the coordinator's display name once so the sidebar shows their
   // real identity (was previously hardcoded "Sam Kim").
   const profile = await prisma.user.findUnique({

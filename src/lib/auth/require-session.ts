@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "./config";
+import { prisma } from "@/lib/db/prisma";
 
 /**
  * Server-component helper used at the top of every authenticated layout.
@@ -9,6 +10,9 @@ import { auth } from "./config";
  *   - Session but accountState !== ACTIVE → redirect to
  *     /auth/account-suspended with the reason embedded.
  *   - Otherwise return a typed session-user.
+ *
+ * Use `requireMfaIfRequired()` separately when an org's
+ * `mfaEnforcementLevel` should gate the layout (staff surfaces).
  */
 export interface AuthedUser {
   id: string;
@@ -52,4 +56,38 @@ export async function requireActiveSession(opts: { next?: string } = {}): Promis
     email: u.email ?? "",
     mfaEnabled: !!u.mfaEnabled,
   };
+}
+
+const STAFF_ROLES: Set<AuthedUser["role"]> = new Set([
+  "COORDINATOR",
+  "CLINICAL_LEAD",
+  "PROGRAM_MANAGER",
+  "SUPER_ADMIN",
+]);
+
+/**
+ * Bounce a staff user without MFA to /account/mfa/setup when their org
+ * requires it.
+ *
+ *   REQUIRED_ALL    → gate every active user, including veterans.
+ *   REQUIRED_STAFF  → gate every staff role; veterans pass through.
+ *   OPTIONAL        → no gate.
+ *
+ * Call from staff/admin/clinical layouts after `requireActiveSession`.
+ * No-op for SUPER_ADMIN without an organizationId (cross-org root).
+ */
+export async function requireMfaIfRequired(user: AuthedUser): Promise<void> {
+  if (user.mfaEnabled) return;
+  if (!user.organizationId) return;
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+    select: { mfaEnforcementLevel: true },
+  });
+  if (!org) return;
+
+  if (org.mfaEnforcementLevel === "OPTIONAL") return;
+  if (org.mfaEnforcementLevel === "REQUIRED_STAFF" && !STAFF_ROLES.has(user.role)) return;
+  // REQUIRED_ALL or (REQUIRED_STAFF and staff): require MFA setup.
+  redirect("/account/mfa/setup?required=1");
 }

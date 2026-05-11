@@ -21,7 +21,7 @@ import { z } from "zod";
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import { hashToken } from "@/lib/auth/invitation";
-import { hashPassword, PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
+import { hashPassword, checkHibpBreach, PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { consume, ipFromRequest } from "@/lib/security/rate-limit";
 
@@ -79,6 +79,31 @@ export async function POST(req: Request) {
   }
   if (inv.status === "ACCEPTED") {
     return NextResponse.json({ error: "already accepted" }, { status: 409 });
+  }
+
+  // If a backup password was supplied (staff only), check it against the
+  // Have-I-Been-Pwned k-anonymity range API before accepting. Set-time
+  // rejection is the right place — failing later at sign-in would mean a
+  // staff member walks around with a credential we know is breached.
+  // We only spend the HIBP call after token + role validation so an
+  // attacker can't use this as an oracle on arbitrary passwords.
+  if (parsed.password && inv.role !== "VETERAN") {
+    try {
+      const breached = await checkHibpBreach(parsed.password);
+      if (breached) {
+        return NextResponse.json(
+          {
+            error: "password_breached",
+            message:
+              "That password has appeared in a known breach. Pick a different one — or skip the password and use the magic-link sign-in.",
+          },
+          { status: 400 },
+        );
+      }
+    } catch {
+      // HIBP unreachable — fail open. Logged at the route boundary;
+      // we never block a legitimate accept on a third-party hiccup.
+    }
   }
 
   const result = await prisma.$transaction(async (tx) => {
