@@ -142,4 +142,22 @@ export const authConfig: NextAuthConfig = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+const next = NextAuth(authConfig);
+export const { handlers, signIn, signOut } = next;
+const realAuth = next.auth;
+
+/**
+ * Wrapped `auth()` — consults the screenshot bypass first (env-gated,
+ * never active in production), then delegates to NextAuth's real
+ * session resolver. The wrapper preserves NextAuth's overload signature
+ * by re-using the underlying function reference at the type level.
+ */
+export const auth = (async (...args: Parameters<typeof realAuth>) => {
+  if (process.env.SCREENSHOT_BYPASS === "1") {
+    const { screenshotBypassSession } = await import("./screenshot-bypass");
+    const bypass = await screenshotBypassSession();
+    if (bypass) return bypass;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (realAuth as any)(...args);
+}) as typeof realAuth;
