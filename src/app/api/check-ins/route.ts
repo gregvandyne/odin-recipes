@@ -81,10 +81,27 @@ export const POST = withAuth(
         async (tx) => {
           const veteranProfile = await tx.veteranProfile.findUnique({
             where: { userId },
-            select: { userId: true, organizationId: true },
+            select: {
+              userId: true,
+              organizationId: true,
+              programStartDate: true,
+              programEndDate: true,
+              timezone: true,
+            },
           });
           if (!veteranProfile || veteranProfile.organizationId !== organizationId) {
             return { kind: "forbidden" as const };
+          }
+          // Enforce the program window: a veteran can only submit for the
+          // current week. weekNumber from the client is treated as a hint;
+          // the engine is keyed off the server-computed week so a stale tab
+          // can't submit for an earlier or later week.
+          const now = new Date();
+          if (
+            now.getTime() < veteranProfile.programStartDate.getTime() ||
+            now.getTime() > veteranProfile.programEndDate.getTime()
+          ) {
+            return { kind: "outOfWindow" as const };
           }
 
           const history = await tx.checkIn.findMany({
@@ -195,6 +212,16 @@ export const POST = withAuth(
 
       if (result.kind === "forbidden") {
         return { status: 403, payload: { error: "forbidden" }, skipCache: true };
+      }
+      if (result.kind === "outOfWindow") {
+        return {
+          status: 410,
+          payload: {
+            error: "out_of_window",
+            message: "Check-ins are only accepted during your 52-week program window.",
+          },
+          skipCache: true,
+        };
       }
 
       if (result.aiPending) {

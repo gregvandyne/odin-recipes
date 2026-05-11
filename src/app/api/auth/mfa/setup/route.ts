@@ -28,6 +28,24 @@ const MFA_AAD = (userId: string) => `mfa-secret:${userId}`;
 
 export const POST = withAuth(
   async (_req, ctx) => {
+    // Refuse to overwrite a confirmed MFA secret. The "happy path" for
+    // setup is a one-shot from the wizard; if a user with MFA already
+    // configured hits this route (browser back button, second-tab,
+    // attacker with a stolen session) we'd otherwise wipe their TOTP
+    // secret and leave them with mfaEnabled=false until they walk through
+    // the wizard again. Require an explicit `/api/auth/mfa/disable` first
+    // (which itself requires `requireMfa: true`).
+    const existing = await prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { mfaConfirmedAt: true },
+    });
+    if (existing?.mfaConfirmedAt) {
+      return NextResponse.json(
+        { error: "mfa_already_configured", message: "Disable MFA first before setting it up again." },
+        { status: 409 },
+      );
+    }
+
     const secretBytes = generateSecret(20);
     const enc = encryptField(secretBytes.toString("hex"), MFA_AAD(ctx.userId));
 

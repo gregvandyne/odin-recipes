@@ -19,7 +19,11 @@ import { currentWeekNumber } from "@/lib/program/week";
 export const GET = withAuth(
   async (req, ctx) => {
     if (!ctx.organizationId) return NextResponse.json({ error: "no tenant" }, { status: 403 });
-    const q = (new URL(req.url).searchParams.get("q") ?? "").trim();
+    // 80 chars covers any realistic name + email substring. Anything longer
+    // is either a misuse of the search (paste a paragraph) or an attempt to
+    // trigger a slow `contains` over the whole index — clamp.
+    const rawQ = new URL(req.url).searchParams.get("q") ?? "";
+    const q = rawQ.slice(0, 80).trim();
     if (q.length < 2) {
       return NextResponse.json({ veterans: [] });
     }

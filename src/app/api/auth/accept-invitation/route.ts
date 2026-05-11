@@ -24,6 +24,7 @@ import { hashToken } from "@/lib/auth/invitation";
 import { hashPassword, checkHibpBreach, PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit/log";
 import { consume, ipFromRequest } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logging/log";
 
 const Body = z.object({
   token: z.string().min(20).max(100),
@@ -100,9 +101,17 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
-    } catch {
-      // HIBP unreachable — fail open. Logged at the route boundary;
-      // we never block a legitimate accept on a third-party hiccup.
+    } catch (err) {
+      // HIBP unreachable — fail open. Log so we notice if the third party
+      // is consistently down (e.g. their CA chain changed and we missed
+      // it); never block a legitimate accept on a third-party hiccup.
+      logger.warn(
+        {
+          err: err instanceof Error ? err.message : String(err),
+          invitationId: inv.id,
+        },
+        "hibp lookup failed; accepting invitation without breach check",
+      );
     }
   }
 

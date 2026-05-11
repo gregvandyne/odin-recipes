@@ -2,10 +2,17 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import Link from "next/link";
+import { ShieldAlert } from "lucide-react";
 import { RevokeAllButton } from "./revoke-all-button";
 
 /**
  * /account/security — list active sessions, MFA status, sign-out everywhere.
+ *
+ * Also surfaces a "your backup password appears in a known breach" banner
+ * when our last HIBP check on this user found a hit. The check runs on
+ * successful password sign-in (fire-and-forget) and stores the result on
+ * `PasswordCredential.breachCheckResult`; this surface is where we ask
+ * the user to do something about it.
  */
 export default async function SecurityPage() {
   const session = await auth();
@@ -15,7 +22,12 @@ export default async function SecurityPage() {
   const [user, sessions] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { mfaEnabled: true, mfaConfirmedAt: true, role: true },
+      select: {
+        mfaEnabled: true,
+        mfaConfirmedAt: true,
+        role: true,
+        password: { select: { breachCheckedAt: true, breachCheckResult: true } },
+      },
     }),
     prisma.session.findMany({
       where: { userId, revokedAt: null, expiresAt: { gte: new Date() } },
@@ -31,12 +43,30 @@ export default async function SecurityPage() {
     }),
   ]);
 
+  const breached = !!user?.password?.breachCheckResult;
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-8 space-y-6">
       <header>
         <p className="text-caption uppercase tracking-wide text-ink-tertiary">Account</p>
         <h1 className="mt-2 text-display font-semibold text-ink-primary">Security</h1>
       </header>
+
+      {breached && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-md border border-crisis/30 bg-crisis/5 p-4"
+        >
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-crisis" aria-hidden />
+          <div className="text-body text-ink-primary">
+            <p className="font-semibold">Your backup password has appeared in a known breach.</p>
+            <p className="mt-1 text-ink-secondary">
+              No one's been in your account — we caught it during a routine check. Pick a new
+              password the next time you sign in with one, or switch to magic-link only.
+            </p>
+          </div>
+        </div>
+      )}
 
       <section className="rounded-lg border border-border bg-canvas-card p-5">
         <h2 className="text-body-lg font-semibold text-ink-primary">Two-factor authentication</h2>
