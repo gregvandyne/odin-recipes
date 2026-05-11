@@ -158,6 +158,8 @@ export const auth = (async (...args: Parameters<typeof realAuth>) => {
     const bypass = await screenshotBypassSession();
     if (bypass) return bypass;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (realAuth as any)(...args);
+  // NextAuth's `auth` is heavily overloaded (route handler, server-side
+  // helper, getServerSideProps); the overload set defeats spread-arg
+  // forwarding. Re-cast once at the call site to forward verbatim.
+  return (realAuth as (...a: unknown[]) => ReturnType<typeof realAuth>)(...args);
 }) as typeof realAuth;
