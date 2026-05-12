@@ -14,6 +14,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { LaptopFrame, PhoneFrame } from "@/components/marketing/device-frame";
+import { Reveal, CountUp } from "@/components/marketing/motion";
+import { StickyNav, MobileBottomDock } from "@/components/marketing/sticky-nav";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
 
 /**
@@ -283,99 +285,83 @@ const FAQS: FaqGroup[] = [
 export default function Home() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-canvas-veteran">
+      {/* Aurora — three overlapping radials, restrained, contained to the top
+          third. The dark variant inherits darker amber tones via .dark .hero-aurora. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] opacity-50"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59, 91, 126, 0.12), transparent 60%)",
-        }}
+        className="hero-aurora pointer-events-none absolute inset-x-0 top-0 h-[680px]"
       />
 
-      <header className="relative z-10">
-        <div className="container flex h-14 items-center justify-between">
-          <span className="text-body font-semibold text-ink-primary">Sentinel</span>
-          <nav className="flex items-center gap-2" aria-label="Top">
-            <Link href="#audiences" className="hidden rounded px-2 py-1 text-body text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block">
-              Who it's for
-            </Link>
-            <Link href="#approach" className="hidden rounded px-2 py-1 text-body text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block">
-              Approach
-            </Link>
-            <Link href="#sources" className="hidden rounded px-2 py-1 text-body text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block">
-              Sources
-            </Link>
-            <ThemeToggle />
-            <Link href="/auth/sign-in" className="rounded px-2 py-1 text-body text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              Sign in
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <StickyNav />
 
       <main className="relative z-10">
         {/* HERO */}
         <section className="hero-warm">
-          <div className="container max-w-3xl px-6 pb-20 pt-24 sm:pt-28">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-canvas-card/80 px-4 py-1.5 text-caption text-ink-secondary shadow-soft backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-risk-green" />
-              Built for the first year after separation
-            </span>
+          <div className="container max-w-6xl px-6 pb-16 pt-12 sm:pt-16 lg:pb-24">
+            <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              {/* LEFT — text */}
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-canvas-card/70 px-3 py-1 text-caption text-ink-secondary shadow-soft backdrop-blur">
+                  <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-risk-green" />
+                  Built for the first year after separation
+                </span>
 
-            <h1 className="mt-8 text-balance font-serif text-[44px] font-normal leading-[1.08] tracking-[-0.02em] text-ink-primary sm:text-[64px]">
-              A quiet, proactive line of support for veterans in their first year after separation.
-            </h1>
+                <h1 className="mt-7 text-balance font-serif text-[42px] font-normal leading-[1.05] tracking-[-0.02em] text-ink-primary sm:text-[52px] lg:text-[56px]">
+                  A quiet, proactive line of support for veterans in their first year after separation.
+                </h1>
 
-            <p className="mt-7 max-w-2xl text-pretty text-body-lg text-ink-secondary">
-              Five-minute weekly check-ins. Pattern recognition across stressor domains. A trained
-              human reaches out when something shifts — before a crisis, not after.
-            </p>
+                <p className="mt-6 max-w-xl text-pretty text-body-lg text-ink-secondary">
+                  Five-minute weekly check-ins. Pattern recognition across stressor domains. A trained
+                  human reaches out when something shifts — before a crisis, not after.
+                </p>
 
-            <div className="mt-10 flex flex-wrap gap-2">
-              <AudienceChip href="#veteran" label="I'm a veteran" />
-              <AudienceChip href="#coordinator" label="I'm a coordinator" />
-              <AudienceChip href="#family" label="I'm a military family member" />
-            </div>
+                <div className="mt-8 flex flex-wrap gap-2">
+                  <AudienceChip href="#veteran" label="Veteran" dot="bg-risk-green" />
+                  <AudienceChip href="#coordinator" label="Coordinator" dot="bg-primary" />
+                  <AudienceChip href="#family" label="Family member" dot="bg-risk-yellow" />
+                </div>
 
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/auth/sign-in"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                Sign in
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-              </Link>
-              <Link
-                href="#approach"
-                className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-canvas-card px-6 text-body font-semibold text-ink-primary transition-all hover:border-border-strong hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                See how it works
-              </Link>
-            </div>
-          </div>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/auth/sign-in"
+                    className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:-translate-y-px hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    Sign in
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  </Link>
+                  <Link
+                    href="#approach"
+                    className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-canvas-card/80 px-6 text-body font-semibold text-ink-primary backdrop-blur transition-all hover:-translate-y-px hover:border-border-strong hover:bg-canvas-card hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    See how it works
+                  </Link>
+                </div>
+              </div>
 
-          {/* HERO PRODUCT SHOT — laptop with queue, phone overlapping with veteran home */}
-          <div className="container max-w-6xl px-6 pb-24">
-            <div className="relative">
-              <LaptopFrame
-                src="/marketing/product-coordinator-queue.png"
-                alt="Coordinator triage queue showing three veterans ordered by SLA — one Outreach overdue, two Watch with 17 hours remaining."
-                width={1100}
-                priority
-                className="animate-fade-up"
-              />
-              <div className="pointer-events-none absolute -bottom-8 right-2 hidden w-[180px] sm:block lg:right-8 lg:-bottom-10 lg:w-[220px]">
-                <PhoneFrame
-                  src="/marketing/product-veteran-home.png"
-                  alt="Veteran home screen — 'Hi, Marcus. About 5 minutes. Skip what you want.'"
-                  width={220}
-                  priority
-                />
+              {/* RIGHT — composed product scene. No Reveal here so it renders
+                  on first paint instead of waiting for IntersectionObserver. */}
+              <div className="relative">
+                {/* Laptop tilted slightly right to feel composed, not flat */}
+                <div className="lg:translate-x-4">
+                  <LaptopFrame
+                    src="/marketing/product-coordinator-queue.png"
+                    alt="Coordinator triage queue with one Outreach overdue and two Watch flags."
+                    width={760}
+                    priority
+                  />
+                </div>
+                {/* Phone tucked in lower-left, overlapping the laptop. Hidden
+                    on the narrowest screens because there's no room for it. */}
+                <div className="pointer-events-none absolute -bottom-6 -left-4 hidden w-[180px] sm:block sm:-left-8 sm:w-[200px] lg:-left-10 lg:-bottom-10 lg:w-[224px]">
+                  <PhoneFrame
+                    src="/marketing/product-veteran-home.png"
+                    alt="Veteran home screen showing 'Hi, Marcus. About 5 minutes.'"
+                    width={224}
+                    priority
+                  />
+                </div>
               </div>
             </div>
-            <p className="mt-10 text-center text-caption text-ink-tertiary sm:mt-12">
-              Left: coordinator triage queue. Right: a veteran's weekly check-in on their phone.
-            </p>
           </div>
         </section>
 
@@ -392,11 +378,11 @@ export default function Home() {
             </p>
 
             <div className="mt-10 grid gap-5 lg:grid-cols-3">
-              {AUDIENCES.map((a) => (
+              {AUDIENCES.map((a, i) => (
+                <Reveal key={a.id} delay={i * 0.08}>
                 <article
-                  key={a.id}
                   id={a.id}
-                  className="flex flex-col rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm sm:p-8"
+                  className="flex h-full flex-col rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-all hover:-translate-y-1 hover:shadow-warm sm:p-8"
                 >
                   <span className="grid h-10 w-10 place-items-center rounded-lg bg-canvas-banded text-ink-secondary ring-1 ring-border">
                     <a.Icon className="h-4 w-4" aria-hidden />
@@ -426,6 +412,7 @@ export default function Home() {
                     </a>
                   </div>
                 </article>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -440,11 +427,12 @@ export default function Home() {
               the existing safety net doesn't see most of them coming.
             </h2>
 
+            <Reveal>
             <dl className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border shadow-soft sm:grid-cols-2">
               {STATS.map((s) => (
                 <div key={s.figure} className="bg-canvas-card p-8">
                   <dt className="font-serif text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink-primary sm:text-[48px]">
-                    {s.figure}
+                    <CountUp value={s.figure} />
                     <sup className="ml-1 text-caption font-normal text-ink-tertiary">
                       <a
                         href={`#source-${s.cite}`}
@@ -458,6 +446,7 @@ export default function Home() {
                 </div>
               ))}
             </dl>
+            </Reveal>
 
             <p className="mt-8 max-w-3xl text-body text-ink-secondary">
               Two of those numbers stack with the third. A large share of veterans who die by
@@ -478,8 +467,9 @@ export default function Home() {
             </h2>
 
             <div className="mt-10 space-y-4">
-              {GAPS.map((g) => (
-                <article key={g.title} className="rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm sm:p-8">
+              {GAPS.map((g, i) => (
+                <Reveal key={g.title} delay={Math.min(i, 3) * 0.05}>
+                <article className="rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-all hover:-translate-y-px hover:shadow-warm sm:p-8">
                   <div className="flex items-start gap-3">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-canvas-banded text-ink-secondary ring-1 ring-border">
                       <g.Icon className="h-4 w-4" aria-hidden />
@@ -509,6 +499,7 @@ export default function Home() {
                     </div>
                   </div>
                 </article>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -559,7 +550,7 @@ export default function Home() {
         </section>
 
         {/* PRODUCT GALLERY — show the real surfaces */}
-        <section className="border-t border-border">
+        <section id="product" className="border-t border-border">
           <div className="container max-w-6xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">A look at the product</p>
             <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
@@ -816,18 +807,21 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      <MobileBottomDock />
     </div>
   );
 }
 
-function AudienceChip({ href, label }: { href: string; label: string }) {
+function AudienceChip({ href, label, dot }: { href: string; label: string; dot?: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-canvas-card/80 px-4 py-2 text-caption font-semibold text-ink-primary shadow-soft backdrop-blur transition-all hover:border-border-strong hover:bg-canvas-card hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="group inline-flex items-center gap-2 rounded-full border border-border/60 bg-canvas-card/50 px-3.5 py-1.5 text-caption font-semibold text-ink-secondary backdrop-blur transition-all hover:-translate-y-px hover:border-border-strong hover:bg-canvas-card hover:text-ink-primary hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
+      {dot && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
       {label}
-      <ArrowRight className="h-3 w-3" aria-hidden />
+      <ArrowRight className="h-3 w-3 opacity-50 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" aria-hidden />
     </Link>
   );
 }

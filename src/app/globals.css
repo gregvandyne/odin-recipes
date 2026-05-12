@@ -85,6 +85,13 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+    /* Force Reveal motion to its final state. Framer Motion's lifecycle
+       runs after hydration, but our SSR HTML has the initial offscreen
+       inline styles baked in — this rule supersedes them. */
+    [data-reveal] {
+      opacity: 1 !important;
+      transform: none !important;
+    }
   }
 }
 
@@ -103,6 +110,23 @@
     background-image:
       radial-gradient(ellipse 80% 60% at 50% 0%, rgba(140, 100, 50, 0.22), transparent 70%),
       radial-gradient(ellipse 50% 40% at 100% 30%, rgba(110, 80, 40, 0.14), transparent 70%);
+  }
+
+  /* Hero aurora — three overlapping radials in warm tones. Confined to a
+     680px band at the top of the page. Drives the calm "lit from above"
+     feel without intruding on the rest of the page. */
+  .hero-aurora {
+    background-image:
+      radial-gradient(ellipse 50% 60% at 20% 10%, rgba(214, 168, 88, 0.22), transparent 65%),
+      radial-gradient(ellipse 45% 55% at 80% 20%, rgba(166, 132, 84, 0.18), transparent 65%),
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(230, 200, 140, 0.16), transparent 70%);
+    mask-image: linear-gradient(180deg, black 50%, transparent 100%);
+  }
+  .dark .hero-aurora {
+    background-image:
+      radial-gradient(ellipse 50% 60% at 20% 10%, rgba(150, 110, 60, 0.30), transparent 65%),
+      radial-gradient(ellipse 45% 55% at 80% 20%, rgba(120, 90, 50, 0.22), transparent 65%),
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(170, 130, 70, 0.18), transparent 70%);
   }
 
   /* Hand-feel underline for inline links in body copy. */

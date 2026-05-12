@@ -30,6 +30,9 @@ async function main() {
     viewport: { width: VP.w, height: VP.h },
     deviceScaleFactor: 2,
     colorScheme: "light",
+    // Skip Framer Motion animations so Reveal-wrapped content renders fully
+    // on first paint instead of waiting for IntersectionObserver to fire.
+    reducedMotion: "reduce",
   });
   const page = await ctx.newPage();
   await page.goto("http://localhost:3000/", {

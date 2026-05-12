@@ -64,6 +64,7 @@ async function main() {
       viewport: { width: s.vp.w, height: s.vp.h },
       deviceScaleFactor: 2,
       colorScheme: s.dark ? "dark" : "light",
+      reducedMotion: "reduce",
     });
     const page = await ctx.newPage();
     // Pre-set theme so next-themes picks it up without flicker.
