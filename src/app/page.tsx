@@ -13,6 +13,7 @@ import {
   Heart,
   ClipboardList,
 } from "lucide-react";
+import { LaptopFrame, PhoneFrame } from "@/components/marketing/device-frame";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
 
 /**
@@ -352,6 +353,30 @@ export default function Home() {
               </Link>
             </div>
           </div>
+
+          {/* HERO PRODUCT SHOT — laptop with queue, phone overlapping with veteran home */}
+          <div className="container max-w-6xl px-6 pb-24">
+            <div className="relative">
+              <LaptopFrame
+                src="/marketing/product-coordinator-queue.png"
+                alt="Coordinator triage queue showing three veterans ordered by SLA — one Outreach overdue, two Watch with 17 hours remaining."
+                width={1100}
+                priority
+                className="animate-fade-up"
+              />
+              <div className="pointer-events-none absolute -bottom-8 right-2 hidden w-[180px] sm:block lg:right-8 lg:-bottom-10 lg:w-[220px]">
+                <PhoneFrame
+                  src="/marketing/product-veteran-home.png"
+                  alt="Veteran home screen — 'Hi, Marcus. About 5 minutes. Skip what you want.'"
+                  width={220}
+                  priority
+                />
+              </div>
+            </div>
+            <p className="mt-10 text-center text-caption text-ink-tertiary sm:mt-12">
+              Left: coordinator triage queue. Right: a veteran's weekly check-in on their phone.
+            </p>
+          </div>
         </section>
 
         {/* THREE AUDIENCES */}
@@ -530,6 +555,111 @@ export default function Home() {
               <Step n={3} title="The system watches for pattern shifts." body="A risk engine weighs each check-in across nine domains against the veteran's own four-week baseline. Trajectory, not absolute scores." />
               <Step n={4} title="A trained human reaches out — quietly." body="The coordinator gets the right amount of context: what shifted, when, and a recommended action. No alarm-bell language. No clinical decisions made by software." />
             </ol>
+          </div>
+        </section>
+
+        {/* PRODUCT GALLERY — show the real surfaces */}
+        <section className="border-t border-border">
+          <div className="container max-w-6xl px-6 py-24">
+            <p className="text-caption uppercase tracking-wide text-ink-tertiary">A look at the product</p>
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
+              The actual screens. No glossy mockups.
+            </h2>
+            <p className="mt-4 max-w-2xl text-body text-ink-secondary">
+              Every shot below is the live product, captured from the same build a real cohort
+              uses.
+            </p>
+
+            <div className="mt-12 grid items-end gap-10 sm:grid-cols-2 lg:grid-cols-3">
+              <ProductCallout
+                eyebrow="Veteran · weekly check-in"
+                title="One question at a time."
+                body="A calm screen, plain language, no scoring shown back. Skip what you want; stop anytime; drafts auto-save."
+              >
+                <PhoneFrame
+                  src="/marketing/product-veteran-checkin.png"
+                  alt="Check-in question: 'On most nights this week, about how many hours did you sleep?'"
+                  width={260}
+                />
+              </ProductCallout>
+              <ProductCallout
+                eyebrow="Veteran · home"
+                title="What this week is about."
+                body="Your coordinator's name. The 988 line one tap away. A reminder of what they see — and what they don't."
+              >
+                <PhoneFrame
+                  src="/marketing/product-veteran-home.png"
+                  alt="Veteran home — week 10 of 52, 5-minute check-in card, coordinator card, crisis line card."
+                  width={260}
+                />
+              </ProductCallout>
+              <ProductCallout
+                eyebrow="Veteran · trends"
+                title="Trajectory, not a score."
+                body="The same nine domains the engine watches — but read in plain words instead of numbers. You see what your coordinator sees."
+              >
+                <PhoneFrame
+                  src="/marketing/product-veteran-trends.png"
+                  alt="Veteran trends — domain readings with plain-language summaries."
+                  width={260}
+                />
+              </ProductCallout>
+            </div>
+
+            <div className="mt-16 grid items-center gap-10 lg:grid-cols-2">
+              <div>
+                <p className="text-caption uppercase tracking-wide text-ink-tertiary">Coordinator · triage queue</p>
+                <h3 className="mt-3 font-serif text-[26px] font-normal leading-tight text-ink-primary sm:text-[30px]">
+                  A queue that already knows where to look.
+                </h3>
+                <p className="mt-4 text-body text-ink-secondary">
+                  Veterans are ordered by SLA — the row at the top is the call to make next. Each
+                  row carries the context a coordinator would otherwise have to assemble: which
+                  domain shifted, when, what the veteran said in their own words, and the
+                  recommended timeframe.
+                </p>
+                <ul className="mt-5 space-y-2 text-body text-ink-secondary">
+                  <li className="flex gap-3">
+                    <span aria-hidden className="mt-2 h-1.5 w-1.5 rounded-full bg-risk-orange" />
+                    <span><strong className="text-ink-primary">Outreach</strong> — single-domain drift past the watch threshold. 24-hour window.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span aria-hidden className="mt-2 h-1.5 w-1.5 rounded-full bg-risk-yellow" />
+                    <span><strong className="text-ink-primary">Watch</strong> — a softer flag with a longer window. Same context, more time.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span aria-hidden className="mt-2 h-1.5 w-1.5 rounded-full bg-risk-red" />
+                    <span><strong className="text-ink-primary">Immediate</strong> — explicit risk language, or a compounding pattern. Same screen, top of the list.</span>
+                  </li>
+                </ul>
+              </div>
+              <LaptopFrame
+                src="/marketing/product-coordinator-queue.png"
+                alt="Coordinator queue with three veterans: one Outreach overdue, two Watch with hours remaining. Real-time updates indicator at the top."
+                width={900}
+              />
+            </div>
+
+            <div className="mt-16 grid items-center gap-10 lg:grid-cols-2">
+              <LaptopFrame
+                src="/marketing/product-coordinator-veteran.png"
+                alt="Per-veteran coordinator timeline showing domain sparklines, recent flags, recommended next action, contact log."
+                width={900}
+                className="lg:order-1"
+              />
+              <div className="lg:order-2">
+                <p className="text-caption uppercase tracking-wide text-ink-tertiary">Coordinator · per-veteran timeline</p>
+                <h3 className="mt-3 font-serif text-[26px] font-normal leading-tight text-ink-primary sm:text-[30px]">
+                  Twelve weeks at a glance. No clinical jargon.
+                </h3>
+                <p className="mt-4 text-body text-ink-secondary">
+                  Nine domain sparklines side by side, the veteran's own words from recent
+                  check-ins, every contact you've already logged, and the engine's recommended
+                  next action — all on one screen. Built so a coordinator who just came back
+                  from leave can be useful in under a minute.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -736,6 +866,27 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
         <p className="mt-2 text-body text-ink-secondary">{body}</p>
       </div>
     </li>
+  );
+}
+
+function ProductCallout({
+  eyebrow,
+  title,
+  body,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      {children}
+      <p className="mt-6 text-caption uppercase tracking-wide text-ink-tertiary">{eyebrow}</p>
+      <h3 className="mt-2 font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-2 max-w-xs text-body text-ink-secondary">{body}</p>
+    </div>
   );
 }
 

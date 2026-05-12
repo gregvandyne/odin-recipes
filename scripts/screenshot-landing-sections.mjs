@@ -11,15 +11,16 @@ const OUT = "docs/screenshots";
 const VP = { w: 1280, h: 900 };
 
 const SECTIONS = [
-  { name: "landing-section-1-hero",       idx: 1 },
-  { name: "landing-section-2-audiences",  idx: 2 },
-  { name: "landing-section-3-problem",    idx: 3 },
-  { name: "landing-section-4-approach",   idx: 4 },
-  { name: "landing-section-5-principles", idx: 5 },
-  { name: "landing-section-6-how",        idx: 6 },
-  { name: "landing-section-7-faq",        idx: 7, expand: true },
-  { name: "landing-section-8-cta",        idx: 8 },
-  { name: "landing-section-9-sources",    idx: 9 },
+  { name: "landing-section-1-hero",        idx: 1 },
+  { name: "landing-section-2-audiences",   idx: 2 },
+  { name: "landing-section-3-problem",     idx: 3 },
+  { name: "landing-section-4-approach",    idx: 4 },
+  { name: "landing-section-5-principles",  idx: 5 },
+  { name: "landing-section-6-how",         idx: 6 },
+  { name: "landing-section-7-product",     idx: 7 },
+  { name: "landing-section-8-faq",         idx: 8, expand: true },
+  { name: "landing-section-9-cta",         idx: 9 },
+  { name: "landing-section-10-sources",    idx: 10 },
 ];
 
 async function main() {
@@ -35,6 +36,24 @@ async function main() {
     waitUntil: "domcontentloaded",
     timeout: 30000,
   });
+  // Force every image to eager + bypass lazy. Marketing shots have product
+  // mockups that are below the fold initially; without this they're missing
+  // from section captures.
+  await page.evaluate(() => {
+    document.querySelectorAll("img").forEach((img) => {
+      img.loading = "eager";
+      img.decoding = "sync";
+    });
+  });
+  // Wait for every <img> to decode.
+  await page.evaluate(() => Promise.all(
+    Array.from(document.images).map((img) =>
+      img.complete ? Promise.resolve() : new Promise((r) => {
+        img.addEventListener("load", () => r());
+        img.addEventListener("error", () => r());
+      })
+    )
+  ));
   // Allow fonts + lazy paint to settle.
   await page.waitForTimeout(800);
 
