@@ -9,7 +9,7 @@
  */
 
 import { motion, useReducedMotion, useInView } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 interface RevealProps {
   children: React.ReactNode;
@@ -58,23 +58,32 @@ export function CountUp({ value, duration = 1.4, className }: CountUpProps) {
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const reduce = useReducedMotion();
   const [display, setDisplay] = useState(value);
+  const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Parse the first decimal/integer number in the string. Used to drive the
-  // tween; non-numeric parts are preserved literally.
-  const match = value.match(/^([^\d-]*)(-?\d+(?:[.,]\d+)?)(.*)$/);
-
-  useEffect(() => {
-    if (!inView || reduce || !match) {
-      setDisplay(value);
-      return;
-    }
+  // Parse the first decimal/integer number in the string. Memoize to avoid
+  // creating a new array on every render which would cause the effect to re-run.
+  const parsed = useMemo(() => {
+    const match = value.match(/^([^\d-]*)(-?\d+(?:[.,]\d+)?)(.*)$/);
+    if (!match) return null;
     const prefix = match[1] ?? "";
     const numStr = match[2] ?? "0";
     const suffix = match[3] ?? "";
     const target = parseFloat(numStr.replace(/,/g, ""));
     const decimals = numStr.includes(".") ? (numStr.split(".")[1]?.length ?? 0) : 0;
+    return { prefix, suffix, target, decimals };
+  }, [value]);
+
+  useEffect(() => {
+    // Skip if already animated, not in view, reduced motion, or couldn't parse
+    if (hasAnimated || !inView || reduce || !parsed) {
+      if (!parsed || reduce) setDisplay(value);
+      return;
+    }
+
+    const { prefix, suffix, target, decimals } = parsed;
     const startedAt = performance.now();
     let raf = 0;
+
     const tick = () => {
       const t = Math.min((performance.now() - startedAt) / (duration * 1000), 1);
       // Ease-out cubic — fast start, gentle settle.
@@ -84,11 +93,16 @@ export function CountUp({ value, duration = 1.4, className }: CountUpProps) {
         ? cur.toFixed(decimals)
         : Math.round(cur).toLocaleString();
       setDisplay(`${prefix}${formatted}${suffix}`);
-      if (t < 1) raf = requestAnimationFrame(tick);
+      if (t < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        setHasAnimated(true);
+      }
     };
+
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, reduce, value, duration, match]);
+  }, [inView, reduce, value, duration, parsed, hasAnimated]);
 
   return <span ref={ref} className={className}>{display}</span>;
 }

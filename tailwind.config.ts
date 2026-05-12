@@ -28,22 +28,22 @@ const config: Config = {
           secondary: "var(--ink-secondary)",
           tertiary:  "var(--ink-tertiary)",
         },
-        // Primary accent — muted slate-blue, steadiness without medical-clinical connotations
+        // Primary accent — refined warm tone
         primary: {
-          DEFAULT: "#3B5B7E",
-          hover: "#2F4A68",
-          foreground: "#FFFFFF",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+          hover: "#2A2520",
         },
         // Risk levels — coordinator-side ONLY, never veteran-visible
         risk: {
-          green: "#3D7A4A",
-          yellow: "#B8860B",
-          orange: "#C4622D",
-          red: "#A82E2E",
+          green: "#3A7A4A",
+          yellow: "#B08800",
+          orange: "#C45A25",
+          red: "#A52828",
         },
         // Crisis — distinct, used only for 988/crisis resource banners
         crisis: {
-          DEFAULT: "#8B1A1A",
+          DEFAULT: "#8B1818",
           foreground: "#FFFFFF",
         },
         border: {
@@ -53,6 +53,14 @@ const config: Config = {
         // shadcn-aligned semantic tokens (mapped to our palette)
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -60,6 +68,10 @@ const config: Config = {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -70,8 +82,6 @@ const config: Config = {
       },
       fontFamily: {
         // System sans for body + UI; an editorial serif for display headings.
-        // The serif adds warmth without trendiness — it reads like a thoughtful
-        // letter, not a marketing site.
         sans: [
           "-apple-system",
           "BlinkMacSystemFont",
@@ -89,48 +99,52 @@ const config: Config = {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       fontSize: {
-        // Five-step type scale. Display tightened for serif use on landing.
-        caption: ["13px", { lineHeight: "1.45" }],
-        body: ["16px", { lineHeight: "1.65" }],
-        "body-lg": ["18px", { lineHeight: "1.65" }],
-        heading: ["24px", { lineHeight: "1.3", letterSpacing: "-0.01em" }],
-        display: ["34px", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
+        // Refined type scale
+        caption: ["13px", { lineHeight: "1.5" }],
+        body: ["16px", { lineHeight: "1.7" }],
+        "body-lg": ["18px", { lineHeight: "1.7" }],
+        heading: ["24px", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
+        display: ["36px", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+        "display-lg": ["48px", { lineHeight: "1.05", letterSpacing: "-0.025em" }],
       },
       fontWeight: {
-        // Two weights. No exceptions.
         normal: "400",
+        medium: "500",
         semibold: "600",
       },
       spacing: {
-        // 8-point grid tokens, plus generous 80/112/144 for breathing-room sections
-        "0.5": "0.125rem", // 2
-        "1": "0.25rem",    // 4
-        "2": "0.5rem",     // 8
-        "3": "0.75rem",    // 12
-        "4": "1rem",       // 16
-        "6": "1.5rem",     // 24
-        "8": "2rem",       // 32
-        "12": "3rem",      // 48
-        "16": "4rem",      // 64
-        "20": "5rem",      // 80
-        "24": "6rem",      // 96
-        "28": "7rem",      // 112
-        "36": "9rem",      // 144
+        // 8-point grid tokens
+        "0.5": "0.125rem",
+        "1": "0.25rem",
+        "2": "0.5rem",
+        "3": "0.75rem",
+        "4": "1rem",
+        "5": "1.25rem",
+        "6": "1.5rem",
+        "8": "2rem",
+        "10": "2.5rem",
+        "12": "3rem",
+        "16": "4rem",
+        "20": "5rem",
+        "24": "6rem",
+        "28": "7rem",
+        "32": "8rem",
+        "36": "9rem",
       },
       borderRadius: {
-        // Softer corners throughout — paper-letter feel.
         sm: "6px",
         DEFAULT: "10px",
         md: "12px",
         lg: "16px",
         xl: "20px",
-        "2xl": "28px",
+        "2xl": "24px",
+        "3xl": "32px",
       },
       boxShadow: {
-        // Two-tier warm-toned shadows. Soft for resting cards, raised for hover/CTAs.
-        soft:    "0 1px 2px rgba(75, 55, 30, 0.04), 0 2px 6px rgba(75, 55, 30, 0.05)",
-        raised:  "0 4px 12px rgba(75, 55, 30, 0.06), 0 12px 32px rgba(75, 55, 30, 0.08)",
-        warm:    "0 1px 2px rgba(120, 90, 50, 0.05), 0 4px 16px rgba(120, 90, 50, 0.06)",
+        soft:    "0 1px 2px rgba(50, 40, 30, 0.03), 0 2px 8px rgba(50, 40, 30, 0.04)",
+        raised:  "0 4px 16px rgba(50, 40, 30, 0.06), 0 12px 40px rgba(50, 40, 30, 0.08)",
+        warm:    "0 1px 3px rgba(100, 80, 50, 0.04), 0 6px 24px rgba(100, 80, 50, 0.06)",
+        glow:    "0 0 40px rgba(200, 170, 120, 0.15)",
       },
       keyframes: {
         "fade-in": {
@@ -138,13 +152,18 @@ const config: Config = {
           to: { opacity: "1" },
         },
         "fade-up": {
-          from: { opacity: "0", transform: "translateY(8px)" },
+          from: { opacity: "0", transform: "translateY(12px)" },
           to:   { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.97)" },
+          to:   { opacity: "1", transform: "scale(1)" },
         },
       },
       animation: {
-        "fade-in": "fade-in 200ms ease-out",
-        "fade-up": "fade-up 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both",
+        "fade-in": "fade-in 300ms ease-out",
+        "fade-up": "fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "scale-in": "scale-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both",
       },
     },
   },
