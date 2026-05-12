@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { LaptopFrame, PhoneFrame } from "@/components/marketing/device-frame";
 import { Reveal, CountUp } from "@/components/marketing/motion";
-import { StickyNav, MobileBottomDock } from "@/components/marketing/sticky-nav";
+import { StickyNav } from "@/components/marketing/sticky-nav";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
 
 /**
@@ -321,21 +321,7 @@ export default function Home() {
                   <AudienceChip href="#family" label="Family member" dot="bg-risk-yellow" />
                 </div>
 
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/auth/sign-in"
-                    className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:-translate-y-px hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    Sign in
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-                  </Link>
-                  <Link
-                    href="#approach"
-                    className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-canvas-card/80 px-6 text-body font-semibold text-ink-primary backdrop-blur transition-all hover:-translate-y-px hover:border-border-strong hover:bg-canvas-card hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    See how it works
-                  </Link>
-                </div>
+
               </div>
 
               {/* RIGHT — composed product scene. No Reveal here so it renders
@@ -345,7 +331,7 @@ export default function Home() {
                 <div className="lg:translate-x-4">
                   <LaptopFrame
                     src="/marketing/product-coordinator-queue.png"
-                    alt="Coordinator triage queue with one Outreach overdue and two Watch flags."
+                    alt="Sentinel sign-in page with email field and one-time link authentication."
                     width={760}
                     priority
                   />
@@ -355,7 +341,7 @@ export default function Home() {
                 <div className="pointer-events-none absolute -bottom-6 -left-4 hidden w-[180px] sm:block sm:-left-8 sm:w-[200px] lg:-left-10 lg:-bottom-10 lg:w-[224px]">
                   <PhoneFrame
                     src="/marketing/product-veteran-home.png"
-                    alt="Veteran home screen showing 'Hi, Marcus. About 5 minutes.'"
+                    alt="Veteran welcome screen with sign-in button and Veterans Crisis Line link."
                     width={224}
                     priority
                   />
@@ -568,8 +554,8 @@ export default function Home() {
                 body="A calm screen, plain language, no scoring shown back. Skip what you want; stop anytime; drafts auto-save."
               >
                 <PhoneFrame
-                  src="/marketing/product-veteran-checkin.png"
-                  alt="Check-in question: 'On most nights this week, about how many hours did you sleep?'"
+src="/marketing/product-veteran-checkin.png"
+                alt="Sign-in screen for veterans showing email authentication with passwordless one-time link."
                   width={260}
                 />
               </ProductCallout>
@@ -806,9 +792,8 @@ export default function Home() {
             — Veterans Crisis Line, 24/7.
           </p>
         </div>
-      </footer>
+</footer>
 
-      <MobileBottomDock />
     </div>
   );
 }
