@@ -135,14 +135,14 @@ export default async function CoordinatorQueue() {
 
   return (
     <div className="px-6 py-6">
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-caption uppercase tracking-wide text-ink-tertiary">Triage</p>
           <h1 className="mt-1 text-display font-semibold text-ink-primary">
             {isPM ? "All open flags" : "Your queue"}
           </h1>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <Pill tone="red" count={totals.RED} label="Immediate" />
           <Pill tone="orange" count={totals.ORANGE} label="Outreach" />
           <Pill tone="yellow" count={totals.YELLOW} label="Watch" />
@@ -197,8 +197,10 @@ function Pill({ tone, count, label }: { tone: "red" | "orange" | "yellow"; count
       ? "border-risk-orange/30 bg-risk-orange/5 text-risk-orange"
       : "border-risk-yellow/30 bg-risk-yellow/5 text-risk-yellow";
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-caption font-semibold ${cls}`}>
-      <span className="text-body-lg">{count}</span>
+    <span
+      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1 text-caption font-semibold leading-none ${cls}`}
+    >
+      <span className="tabular-nums">{count}</span>
       <span className="opacity-80">{label}</span>
     </span>
   );

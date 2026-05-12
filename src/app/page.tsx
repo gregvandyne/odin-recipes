@@ -631,13 +631,27 @@ export default function Home() {
               />
             </div>
 
-            <div className="mt-16 grid items-center gap-10 lg:grid-cols-2">
-              <LaptopFrame
-                src="/marketing/product-coordinator-veteran.png"
-                alt="Per-veteran coordinator timeline showing domain sparklines, recent flags, recommended next action, contact log."
-                width={900}
-                className="lg:order-1"
-              />
+            <div className="mt-16 grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              {/* Composed scene: coordinator laptop + the matching veteran
+                  trends phone tucked into the corner. Same domains, two
+                  viewpoints — what the coordinator sees vs. what the veteran
+                  sees back. */}
+              <div className="relative lg:order-1">
+                <div className="lg:-translate-x-2">
+                  <LaptopFrame
+                    src="/marketing/product-coordinator-veteran.png"
+                    alt="Per-veteran coordinator timeline showing domain sparklines, recent flags, recommended next action, contact log."
+                    width={900}
+                  />
+                </div>
+                <div className="pointer-events-none absolute -bottom-6 -right-2 hidden w-[170px] sm:block sm:-right-4 sm:w-[190px] lg:-bottom-10 lg:-right-6 lg:w-[210px]">
+                  <PhoneFrame
+                    src="/marketing/product-veteran-trends.png"
+                    alt="Veteran trends view — the same nine domains in plain language on the veteran's own phone."
+                    width={210}
+                  />
+                </div>
+              </div>
               <div className="lg:order-2">
                 <p className="text-caption uppercase tracking-wide text-ink-tertiary">Coordinator · per-veteran timeline</p>
                 <h3 className="mt-3 font-serif text-[26px] font-normal leading-tight text-ink-primary sm:text-[30px]">
@@ -648,6 +662,10 @@ export default function Home() {
                   check-ins, every contact you've already logged, and the engine's recommended
                   next action — all on one screen. Built so a coordinator who just came back
                   from leave can be useful in under a minute.
+                </p>
+                <p className="mt-3 text-body text-ink-secondary">
+                  The veteran sees the same domains in their own trends view — plain language,
+                  no scoring. Same reality, two viewpoints.
                 </p>
               </div>
             </div>

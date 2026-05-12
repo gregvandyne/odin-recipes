@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Aeonik — licensed UI typeface. Drop .woff2 files into /public/fonts/aeonik/.
+   Missing files fall through to Inter (loaded via next/font/google) without
+   breaking the page; the browser simply uses the next entry in the stack. */
+@font-face {
+  font-family: "Aeonik";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/aeonik/Aeonik-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Aeonik";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/aeonik/Aeonik-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Aeonik";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/aeonik/Aeonik-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Aeonik";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/aeonik/Aeonik-Bold.woff2") format("woff2");
+}
+
 /**
  * Sentinel design tokens.
  *

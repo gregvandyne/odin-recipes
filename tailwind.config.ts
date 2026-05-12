@@ -69,10 +69,11 @@ const config: Config = {
         input: "hsl(var(--input))",
       },
       fontFamily: {
-        // System sans for body + UI; an editorial serif for display headings.
-        // The serif adds warmth without trendiness — it reads like a thoughtful
-        // letter, not a marketing site.
+        // Aeonik is the primary UI typeface; Inter (web) and the system stack
+        // act as fallbacks if the licensed Aeonik files aren't present.
         sans: [
+          "Aeonik",
+          "var(--font-inter)",
           "-apple-system",
           "BlinkMacSystemFont",
           "SF Pro Text",

@@ -1,13 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Source_Serif_4 } from "next/font/google";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/sentinel/theme-provider";
 import { Toaster } from "@/components/ui/toast";
 import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
 import { ServiceWorkerRegistrar } from "@/components/sentinel/sw-register";
 
-// Editorial serif reserved for display headings. Two weights only — keeps
-// the typographic discipline of the original system.
+// Inter is loaded from Google and acts as the web fallback for Aeonik —
+// Aeonik itself is wired up via @font-face in globals.css and expects
+// licensed .woff2 files under /public/fonts/aeonik/. When those files are
+// present the browser uses them; when they're absent it falls through to
+// Inter, which has nearly identical metrics.
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+// Editorial serif reserved for landing-page display headings. Two weights
+// only — keeps the typographic discipline of the original system.
 const serif = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400", "600"],
@@ -42,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={serif.variable}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${serif.variable}`}>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <a
