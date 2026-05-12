@@ -13,7 +13,7 @@ export default function AccountSuspendedPage({
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-6 py-12">
       <p className="text-caption uppercase tracking-wide text-ink-tertiary">Sentinel</p>
-      <h1 className="mt-2 text-display font-semibold text-ink-primary">
+      <h1 className="mt-2 font-serif text-[34px] font-normal leading-tight tracking-[-0.015em] text-ink-primary">
         This account is paused.
       </h1>
       <p className="mt-3 text-body text-ink-secondary">

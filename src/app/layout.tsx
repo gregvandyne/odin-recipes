@@ -1,9 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/sentinel/theme-provider";
 import { Toaster } from "@/components/ui/toast";
 import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
 import { ServiceWorkerRegistrar } from "@/components/sentinel/sw-register";
+
+// Editorial serif reserved for display headings. Two weights only — keeps
+// the typographic discipline of the original system.
+const serif = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  display: "swap",
+  variable: "--font-serif",
+});
 
 export const metadata: Metadata = {
   title: { default: "Sentinel", template: "%s · Sentinel" },
@@ -25,14 +35,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FAFAF7" },
-    { media: "(prefers-color-scheme: dark)", color: "#171717" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F2E8" },
+    { media: "(prefers-color-scheme: dark)", color: "#16140F" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={serif.variable}>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <a

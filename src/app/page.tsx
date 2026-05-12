@@ -314,49 +314,51 @@ export default function Home() {
 
       <main className="relative z-10">
         {/* HERO */}
-        <section className="container max-w-3xl px-6 pb-12 pt-20">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-canvas-card/70 px-3 py-1 text-caption text-ink-secondary backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-risk-green" />
-            Built for the first year after separation
-          </span>
+        <section className="hero-warm">
+          <div className="container max-w-3xl px-6 pb-20 pt-24 sm:pt-28">
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-canvas-card/80 px-4 py-1.5 text-caption text-ink-secondary shadow-soft backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-risk-green" />
+              Built for the first year after separation
+            </span>
 
-          <h1 className="mt-6 text-balance text-[40px] font-semibold leading-[1.1] tracking-tight text-ink-primary sm:text-[52px]">
-            A quiet, proactive line of support for veterans in their first year after separation.
-          </h1>
+            <h1 className="mt-8 text-balance font-serif text-[44px] font-normal leading-[1.08] tracking-[-0.02em] text-ink-primary sm:text-[64px]">
+              A quiet, proactive line of support for veterans in their first year after separation.
+            </h1>
 
-          <p className="mt-6 max-w-2xl text-pretty text-body-lg text-ink-secondary">
-            Five-minute weekly check-ins. Pattern recognition across stressor domains. A trained
-            human reaches out when something shifts — before a crisis, not after.
-          </p>
+            <p className="mt-7 max-w-2xl text-pretty text-body-lg text-ink-secondary">
+              Five-minute weekly check-ins. Pattern recognition across stressor domains. A trained
+              human reaches out when something shifts — before a crisis, not after.
+            </p>
 
-          <div className="mt-8 flex flex-wrap gap-2">
-            <AudienceChip href="#veteran" label="I'm a veteran" />
-            <AudienceChip href="#coordinator" label="I'm a coordinator" />
-            <AudienceChip href="#family" label="I'm a military family member" />
-          </div>
+            <div className="mt-10 flex flex-wrap gap-2">
+              <AudienceChip href="#veteran" label="I'm a veteran" />
+              <AudienceChip href="#coordinator" label="I'm a coordinator" />
+              <AudienceChip href="#family" label="I'm a military family member" />
+            </div>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/auth/sign-in"
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              Sign in
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-            </Link>
-            <Link
-              href="#approach"
-              className="inline-flex h-12 items-center justify-center rounded-md border border-border bg-canvas-card px-6 text-body font-semibold text-ink-primary hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              See how it works
-            </Link>
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/auth/sign-in"
+                className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                Sign in
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </Link>
+              <Link
+                href="#approach"
+                className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-canvas-card px-6 text-body font-semibold text-ink-primary transition-all hover:border-border-strong hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                See how it works
+              </Link>
+            </div>
           </div>
         </section>
 
         {/* THREE AUDIENCES */}
         <section id="audiences" className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-6xl px-6 py-16">
+          <div className="container max-w-6xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">Who it's for</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               Three audiences. Three commitments. Same program.
             </h2>
             <p className="mt-3 max-w-3xl text-body text-ink-secondary">
@@ -369,13 +371,13 @@ export default function Home() {
                 <article
                   key={a.id}
                   id={a.id}
-                  className="flex flex-col rounded-lg border border-border bg-canvas-card p-6 sm:p-7"
+                  className="flex flex-col rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm sm:p-8"
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-md bg-canvas-banded text-ink-secondary">
+                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-canvas-banded text-ink-secondary ring-1 ring-border">
                     <a.Icon className="h-4 w-4" aria-hidden />
                   </span>
                   <p className="mt-4 text-caption uppercase tracking-wide text-ink-tertiary">{a.eyebrow}</p>
-                  <h3 className="mt-1 text-body-lg font-semibold text-ink-primary">{a.title}</h3>
+                  <h3 className="mt-2 font-serif text-[22px] font-normal leading-tight text-ink-primary">{a.title}</h3>
                   <div className="mt-3 space-y-3 text-body text-ink-secondary">
                     {a.body.map((p, i) => (
                       <p key={i}>{p}</p>
@@ -406,17 +408,17 @@ export default function Home() {
 
         {/* PROBLEM */}
         <section className="border-t border-border">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">The problem, in numbers</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               The transition from service is the loneliest point in many veterans' adult lives — and
               the existing safety net doesn't see most of them coming.
             </h2>
 
-            <dl className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
+            <dl className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border shadow-soft sm:grid-cols-2">
               {STATS.map((s) => (
-                <div key={s.figure} className="bg-canvas-card p-6">
-                  <dt className="text-display font-semibold text-ink-primary">
+                <div key={s.figure} className="bg-canvas-card p-8">
+                  <dt className="font-serif text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink-primary sm:text-[48px]">
                     {s.figure}
                     <sup className="ml-1 text-caption font-normal text-ink-tertiary">
                       <a
@@ -444,20 +446,20 @@ export default function Home() {
 
         {/* APPROACH */}
         <section id="approach" className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">Our approach</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               Six gaps in the current model. Six explicit design choices.
             </h2>
 
             <div className="mt-10 space-y-4">
               {GAPS.map((g) => (
-                <article key={g.title} className="rounded-lg border border-border bg-canvas-card p-6 sm:p-7">
+                <article key={g.title} className="rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm sm:p-8">
                   <div className="flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-canvas-banded text-ink-secondary">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-canvas-banded text-ink-secondary ring-1 ring-border">
                       <g.Icon className="h-4 w-4" aria-hidden />
                     </span>
-                    <h3 className="text-body-lg font-semibold text-ink-primary">{g.title}</h3>
+                    <h3 className="font-serif text-[22px] font-normal leading-tight text-ink-primary">{g.title}</h3>
                   </div>
                   <div className="mt-5 grid gap-5 sm:grid-cols-2 sm:gap-8">
                     <div>
@@ -489,9 +491,9 @@ export default function Home() {
 
         {/* PRINCIPLES */}
         <section className="border-t border-border">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">Principles that don't bend</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               The system is loud about what it won't do.
             </h2>
             <div className="mt-10 grid gap-8 sm:grid-cols-3">
@@ -516,9 +518,9 @@ export default function Home() {
 
         {/* HOW IT WORKS */}
         <section className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">How it works in 52 weeks</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               Boring on purpose.
             </h2>
 
@@ -533,17 +535,17 @@ export default function Home() {
 
         {/* FAQ BY AUDIENCE */}
         <section className="border-t border-border">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">Frequently asked</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               The questions that come up most often — answered by audience.
             </h2>
 
             <div className="mt-10 space-y-12">
               {FAQS.map((group) => (
                 <div key={group.audience} id={`${group.audience}-faq`}>
-                  <h3 className="text-body-lg font-semibold text-ink-primary">{group.heading}</h3>
-                  <dl className="mt-4 divide-y divide-border rounded-lg border border-border bg-canvas-card">
+                  <h3 className="font-serif text-[22px] font-normal leading-tight text-ink-primary">{group.heading}</h3>
+                  <dl className="mt-4 divide-y divide-border rounded-xl border border-border bg-canvas-card shadow-soft">
                     {group.items.map((it) => (
                       <details key={it.q} className="group p-5">
                         <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-body font-semibold text-ink-primary marker:hidden">
@@ -562,9 +564,9 @@ export default function Home() {
 
         {/* CTA — three audience paths */}
         <section className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">Get in touch</p>
-            <h2 className="mt-2 max-w-3xl text-balance text-heading font-semibold text-ink-primary sm:text-[32px]">
+            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
               Pick the path that fits.
             </h2>
 
@@ -593,7 +595,7 @@ export default function Home() {
               />
             </div>
 
-            <div className="mt-12 rounded-lg border border-border bg-canvas-card p-6 sm:p-7">
+            <div className="mt-12 rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm sm:p-8">
               <p className="text-caption uppercase tracking-wide text-ink-tertiary">
                 For transition programs, clinics, and cohort sponsors
               </p>
@@ -604,14 +606,14 @@ export default function Home() {
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="mailto:hello@sentinel.health?subject=Pilot%20interest"
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   Request a pilot
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </a>
                 <Link
                   href="#approach"
-                  className="inline-flex h-12 items-center justify-center rounded-md border border-border bg-canvas-card px-6 text-body font-semibold text-ink-primary hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-canvas-card px-6 text-body font-semibold text-ink-primary transition-all hover:border-border-strong hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   See the approach
                 </Link>
@@ -625,7 +627,7 @@ export default function Home() {
 
         {/* SOURCES */}
         <section id="sources" className="border-t border-border">
-          <div className="container max-w-5xl px-6 py-16">
+          <div className="container max-w-5xl px-6 py-24">
             <p className="text-caption uppercase tracking-wide text-ink-tertiary">Sources</p>
             <h2 className="mt-2 text-heading font-semibold text-ink-primary">
               Numbers we cite, and where they came from.
@@ -692,7 +694,7 @@ function AudienceChip({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-canvas-card px-3 py-1.5 text-caption font-semibold text-ink-primary transition-colors hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-canvas-card/80 px-4 py-2 text-caption font-semibold text-ink-primary shadow-soft backdrop-blur transition-all hover:border-border-strong hover:bg-canvas-card hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       {label}
       <ArrowRight className="h-3 w-3" aria-hidden />
@@ -711,9 +713,11 @@ function Principle({
 }) {
   return (
     <div>
-      <Icon className="h-5 w-5 text-ink-secondary" aria-hidden />
-      <h3 className="mt-3 text-body-lg font-semibold text-ink-primary">{title}</h3>
-      <p className="mt-2 text-body text-ink-secondary">{body}</p>
+      <span className="grid h-11 w-11 place-items-center rounded-xl bg-canvas-card text-primary shadow-soft ring-1 ring-border">
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <h3 className="mt-4 font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-3 text-body text-ink-secondary">{body}</p>
     </div>
   );
 }
@@ -723,13 +727,13 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
     <li className="flex gap-4">
       <span
         aria-hidden
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border bg-canvas-card text-body font-semibold text-ink-primary"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-canvas-card font-serif text-body-lg font-normal text-ink-primary shadow-soft ring-1 ring-border"
       >
         {n}
       </span>
       <div>
-        <h3 className="text-body-lg font-semibold text-ink-primary">{title}</h3>
-        <p className="mt-1.5 text-body text-ink-secondary">{body}</p>
+        <h3 className="font-serif text-[20px] font-normal leading-tight text-ink-primary">{title}</h3>
+        <p className="mt-2 text-body text-ink-secondary">{body}</p>
       </div>
     </li>
   );
@@ -751,13 +755,13 @@ function CtaCard({
   secondaryHref?: string;
 }) {
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-canvas-card p-6">
-      <h3 className="text-body-lg font-semibold text-ink-primary">{title}</h3>
-      <p className="mt-2 flex-1 text-body text-ink-secondary">{body}</p>
-      <div className="mt-5 flex flex-col gap-2">
+    <div className="flex flex-col rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm">
+      <h3 className="font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-3 flex-1 text-body text-ink-secondary">{body}</p>
+      <div className="mt-6 flex flex-col gap-2">
         <a
           href={actionHref}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           {actionLabel}
           <ArrowRight className="h-4 w-4" aria-hidden />
@@ -765,7 +769,7 @@ function CtaCard({
         {secondaryLabel && secondaryHref && (
           <a
             href={secondaryHref}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-canvas-card px-4 text-caption font-semibold text-ink-secondary hover:text-ink-primary hover:bg-canvas-banded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-canvas-card px-4 text-caption font-semibold text-ink-secondary transition-all hover:bg-canvas-banded hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {secondaryLabel}
           </a>

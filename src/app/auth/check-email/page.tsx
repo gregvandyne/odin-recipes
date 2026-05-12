@@ -26,7 +26,7 @@ export default function CheckEmailPage({
 
       <header className="mt-4">
         <p className="text-caption uppercase tracking-wide text-ink-tertiary">Sign in</p>
-        <h1 className="mt-2 text-display font-semibold text-ink-primary">Check your inbox.</h1>
+        <h1 className="mt-2 font-serif text-[34px] font-normal leading-tight tracking-[-0.015em] text-ink-primary">Check your inbox.</h1>
         <p className="mt-3 text-body text-ink-secondary">
           A one-time sign-in link is on its way
           {email ? (

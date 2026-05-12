@@ -27,39 +27,42 @@
     --ring: 210 30% 36%;
     --input: 0 0% 89%;
 
-    /* Sentinel surfaces (CSS-var driven so dark mode swaps without JS) */
-    --canvas-veteran: #FAFAF7;
-    --canvas-staff:   #F8F9FA;
-    --canvas-card:    #FFFFFF;
-    --canvas-banded:  #F4F4F2;
-    --ink-primary:    #1A1A1A;
-    --ink-secondary:  #4A4A4A;
-    --ink-tertiary:   #737373;
-    --border-color:   #E5E5E5;
-    --border-strong:  #D4D4D4;
+    /* Sentinel surfaces — paper-warm in light, deep amber-tinted in dark.
+       Warmth without yellow-cast: ~5% red+green over a neutral base. */
+    --canvas-veteran: #F7F2E8;  /* paper cream */
+    --canvas-staff:   #F6F3EC;  /* slightly cooler paper */
+    --canvas-card:    #FFFDF7;  /* warm white */
+    --canvas-banded:  #EFE9DC;
+    --ink-primary:    #1B1A17;  /* near-black with warm undertone */
+    --ink-secondary:  #4E483F;
+    --ink-tertiary:   #7A7368;
+    --border-color:   #E5DDC8;
+    --border-strong:  #D6CCB3;
   }
 
   .dark {
-    --background: 0 0% 9%;
-    --foreground: 0 0% 95%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 210 30% 56%;
+    --background: 30 7% 9%;
+    --foreground: 36 10% 95%;
+    --muted: 30 6% 14%;
+    --muted-foreground: 32 8% 68%;
+    --accent: 210 30% 60%;
     --accent-foreground: 0 0% 5%;
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
-    --ring: 210 30% 56%;
-    --input: 0 0% 18%;
+    --ring: 210 30% 60%;
+    --input: 30 6% 18%;
 
-    --canvas-veteran: #141414;
-    --canvas-staff:   #111213;
-    --canvas-card:    #1C1C1C;
-    --canvas-banded:  #232323;
-    --ink-primary:    #F2F2F2;
-    --ink-secondary:  #B0B0B0;
-    --ink-tertiary:   #828282;
-    --border-color:   #2C2C2C;
-    --border-strong:  #3A3A3A;
+    /* Warm dark — neutrals tinted slightly toward amber so the page feels
+       lit by lamplight, not screen-glow. */
+    --canvas-veteran: #16140F;
+    --canvas-staff:   #13110D;
+    --canvas-card:    #1E1B15;
+    --canvas-banded:  #25211A;
+    --ink-primary:    #F3EFE6;
+    --ink-secondary:  #B5AEA0;
+    --ink-tertiary:   #847C6E;
+    --border-color:   #2E2A22;
+    --border-strong:  #3D382E;
   }
 
   html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
@@ -69,11 +72,11 @@
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   ::selection {
-    background-color: rgba(59, 91, 126, 0.2);
+    background-color: rgba(120, 80, 30, 0.18);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -88,6 +91,31 @@
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .text-pretty  { text-wrap: pretty; }
+
+  /* Paper-warm hero glow — single soft radial. Restrained: opacity 0.5 max.
+     Layered on top of canvas; never replaces it. */
+  .hero-warm {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(214, 168, 88, 0.18), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 100% 30%, rgba(168, 136, 92, 0.10), transparent 70%);
+  }
+  .dark .hero-warm {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(140, 100, 50, 0.22), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 100% 30%, rgba(110, 80, 40, 0.14), transparent 70%);
+  }
+
+  /* Hand-feel underline for inline links in body copy. */
+  .link-handwritten {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    text-decoration: none;
+  }
+  .link-handwritten:hover {
+    background-size: 100% 2px;
+  }
 
   /* Subtle pulse — used ONLY on RED risk states. Honors reduced-motion. */
   .pulse-red::before {

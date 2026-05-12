@@ -69,7 +69,9 @@ const config: Config = {
         input: "hsl(var(--input))",
       },
       fontFamily: {
-        // System fonts only. No custom font that signals brand over substance.
+        // System sans for body + UI; an editorial serif for display headings.
+        // The serif adds warmth without trendiness — it reads like a thoughtful
+        // letter, not a marketing site.
         sans: [
           "-apple-system",
           "BlinkMacSystemFont",
@@ -78,15 +80,21 @@ const config: Config = {
           "system-ui",
           "sans-serif",
         ],
+        serif: [
+          "var(--font-serif)",
+          "ui-serif",
+          "Georgia",
+          "serif",
+        ],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       fontSize: {
-        // Five-step type scale. Do not invent more.
+        // Five-step type scale. Display tightened for serif use on landing.
         caption: ["13px", { lineHeight: "1.45" }],
-        body: ["16px", { lineHeight: "1.6" }],
-        "body-lg": ["18px", { lineHeight: "1.6" }],
-        heading: ["22px", { lineHeight: "1.35" }],
-        display: ["28px", { lineHeight: "1.3" }],
+        body: ["16px", { lineHeight: "1.65" }],
+        "body-lg": ["18px", { lineHeight: "1.65" }],
+        heading: ["24px", { lineHeight: "1.3", letterSpacing: "-0.01em" }],
+        display: ["34px", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
       },
       fontWeight: {
         // Two weights. No exceptions.
@@ -94,7 +102,7 @@ const config: Config = {
         semibold: "600",
       },
       spacing: {
-        // 8-point grid tokens (4 included for sub-element spacing)
+        // 8-point grid tokens, plus generous 80/112/144 for breathing-room sections
         "0.5": "0.125rem", // 2
         "1": "0.25rem",    // 4
         "2": "0.5rem",     // 8
@@ -104,27 +112,39 @@ const config: Config = {
         "8": "2rem",       // 32
         "12": "3rem",      // 48
         "16": "4rem",      // 64
+        "20": "5rem",      // 80
         "24": "6rem",      // 96
+        "28": "7rem",      // 112
+        "36": "9rem",      // 144
       },
       borderRadius: {
-        sm: "4px",
-        DEFAULT: "6px",
-        md: "8px",
-        lg: "12px",
-        xl: "16px",
+        // Softer corners throughout — paper-letter feel.
+        sm: "6px",
+        DEFAULT: "10px",
+        md: "12px",
+        lg: "16px",
+        xl: "20px",
+        "2xl": "28px",
       },
       boxShadow: {
-        // One soft shadow. Reserve for modals, command palette, message bubbles, toasts.
-        soft: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+        // Two-tier warm-toned shadows. Soft for resting cards, raised for hover/CTAs.
+        soft:    "0 1px 2px rgba(75, 55, 30, 0.04), 0 2px 6px rgba(75, 55, 30, 0.05)",
+        raised:  "0 4px 12px rgba(75, 55, 30, 0.06), 0 12px 32px rgba(75, 55, 30, 0.08)",
+        warm:    "0 1px 2px rgba(120, 90, 50, 0.05), 0 4px 16px rgba(120, 90, 50, 0.06)",
       },
       keyframes: {
         "fade-in": {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to:   { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 200ms ease-out",
+        "fade-up": "fade-up 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both",
       },
     },
   },

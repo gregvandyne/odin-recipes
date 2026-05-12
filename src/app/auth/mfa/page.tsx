@@ -28,7 +28,7 @@ export default async function MfaChallengePage({
       </div>
       <header className="mt-4">
         <p className="text-caption uppercase tracking-wide text-ink-tertiary">Verification</p>
-        <h1 className="mt-1 text-display font-semibold text-ink-primary">
+        <h1 className="mt-1 font-serif text-[34px] font-normal leading-tight tracking-[-0.015em] text-ink-primary">
           Confirm it's you.
         </h1>
         <p className="mt-2 text-body text-ink-secondary">

@@ -84,7 +84,7 @@ export default async function VeteranHome() {
       <header className="flex items-start justify-between">
         <div>
           <p className="text-caption text-ink-tertiary">Week {data.weekNumber} of 52</p>
-          <h1 className="mt-1 text-display font-semibold text-ink-primary">
+          <h1 className="mt-2 font-serif text-[36px] font-normal leading-[1.1] tracking-[-0.015em] text-ink-primary">
             Hi, {data.displayName.split(/\s+/)[0]}.
           </h1>
         </div>
@@ -169,7 +169,7 @@ function UnscopedHome() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-display font-semibold text-ink-primary">Welcome back.</h1>
+        <h1 className="font-serif text-[36px] font-normal leading-tight tracking-[-0.015em] text-ink-primary">Welcome back.</h1>
         <p className="mt-2 text-body text-ink-secondary">
           Sign in to see your check-in. Your trends and messages will load once we know who you are.
         </p>
