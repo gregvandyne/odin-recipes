@@ -693,7 +693,7 @@ src="/marketing/product-veteran-checkin.png"
               <CtaCard
                 title="Family members"
                 body="The single most useful thing you can do for a veteran you're worried about is hand them this page. We don't enroll people without their consent — and we don't pretend the answer is software alone."
-                actionLabel="Share with my veteran"
+                actionLabel="Share with veteran"
                 actionHref="mailto:?subject=Sentinel&body=Thought%20you%20might%20want%20to%20look%20at%20this:%20https%3A%2F%2Fsentinel.health%2F"
                 secondaryLabel="Reach out directly"
                 secondaryHref="mailto:hello@sentinel.health?subject=Family%20member%20inquiry"
@@ -894,13 +894,15 @@ function CtaCard({
           {actionLabel}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
         </a>
-        {secondaryLabel && secondaryHref && (
+        {secondaryLabel && secondaryHref ? (
           <a
             href={secondaryHref}
             className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-canvas-card px-5 text-body font-medium text-ink-secondary transition-all hover:border-border-strong hover:bg-canvas-banded hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {secondaryLabel}
           </a>
+        ) : (
+          <div aria-hidden className="h-11" />
         )}
       </div>
     </div>
