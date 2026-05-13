@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { LaptopFrame, PhoneFrame } from "@/components/marketing/device-frame";
 import { Reveal, CountUp } from "@/components/marketing/motion";
-import { StickyNav, MobileBottomDock } from "@/components/marketing/sticky-nav";
+import { StickyNav } from "@/components/marketing/sticky-nav";
 import { ThemeToggle } from "@/components/sentinel/theme-toggle";
 
 /**
@@ -285,78 +285,57 @@ const FAQS: FaqGroup[] = [
 export default function Home() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-canvas-veteran">
-      {/* Aurora — three overlapping radials, restrained, contained to the top
-          third. The dark variant inherits darker amber tones via .dark .hero-aurora. */}
+      {/* Aurora — elegant overlapping radials, contained to top portion */}
       <div
         aria-hidden
-        className="hero-aurora pointer-events-none absolute inset-x-0 top-0 h-[680px]"
+        className="hero-aurora pointer-events-none absolute inset-x-0 top-0 h-[800px]"
       />
 
       <StickyNav />
 
-      <main className="relative z-10">
+      <main className="relative z-10" id="main">
         {/* HERO */}
         <section className="hero-warm">
-          <div className="container max-w-6xl px-6 pb-16 pt-12 sm:pt-16 lg:pb-24">
-            <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="container max-w-6xl px-6 pb-20 pt-16 sm:pt-20 lg:pb-32 lg:pt-24">
+            <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-20">
               {/* LEFT — text */}
               <div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-canvas-card/70 px-3 py-1 text-caption text-ink-secondary shadow-soft backdrop-blur">
-                  <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-risk-green" />
+                <span className="inline-flex items-center gap-2.5 rounded-full border border-border/60 bg-canvas-card/80 px-4 py-1.5 text-caption font-medium text-ink-secondary shadow-soft backdrop-blur-sm">
+                  <span aria-hidden className="h-2 w-2 rounded-full bg-risk-green animate-pulse" />
                   Built for the first year after separation
                 </span>
 
-                <h1 className="mt-7 text-balance font-serif text-[42px] font-normal leading-[1.05] tracking-[-0.02em] text-ink-primary sm:text-[52px] lg:text-[56px]">
-                  A quiet, proactive line of support for veterans in their first year after separation.
+                <h1 className="mt-8 text-balance font-serif text-[38px] font-normal leading-[1.08] tracking-[-0.02em] text-ink-primary sm:text-[48px] lg:text-[56px]">
+                  A quiet line of support when it matters most.
                 </h1>
 
-                <p className="mt-6 max-w-xl text-pretty text-body-lg text-ink-secondary">
-                  Five-minute weekly check-ins. Pattern recognition across stressor domains. A trained
-                  human reaches out when something shifts — before a crisis, not after.
+                <p className="mt-7 max-w-xl text-pretty text-body-lg leading-relaxed text-ink-secondary">
+                  Five-minute weekly check-ins. Pattern recognition across stressor domains. 
+                  A trained human reaches out when something shifts — before a crisis, not after.
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-2">
-                  <AudienceChip href="#veteran" label="Veteran" dot="bg-risk-green" />
-                  <AudienceChip href="#coordinator" label="Coordinator" dot="bg-primary" />
-                  <AudienceChip href="#family" label="Family member" dot="bg-risk-yellow" />
-                </div>
-
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/auth/sign-in"
-                    className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:-translate-y-px hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    Sign in
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-                  </Link>
-                  <Link
-                    href="#approach"
-                    className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-canvas-card/80 px-6 text-body font-semibold text-ink-primary backdrop-blur transition-all hover:-translate-y-px hover:border-border-strong hover:bg-canvas-card hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    See how it works
-                  </Link>
+                <div className="mt-10 flex flex-wrap gap-3">
+                  <AudienceChip href="#veteran" label="I&apos;m a Veteran" dot="bg-risk-green" />
+                  <AudienceChip href="#coordinator" label="I&apos;m a Coordinator" dot="bg-ink-primary" />
+                  <AudienceChip href="#family" label="I&apos;m Family" dot="bg-risk-yellow" />
                 </div>
               </div>
 
-              {/* RIGHT — composed product scene. No Reveal here so it renders
-                  on first paint instead of waiting for IntersectionObserver. */}
+              {/* RIGHT — composed product scene */}
               <div className="relative">
-                {/* Laptop tilted slightly right to feel composed, not flat */}
-                <div className="lg:translate-x-4">
+                <div className="lg:translate-x-6">
                   <LaptopFrame
                     src="/marketing/product-coordinator-queue.png"
-                    alt="Coordinator triage queue with one Outreach overdue and two Watch flags."
+                    alt="Sentinel sign-in page with email field and one-time link authentication."
                     width={760}
                     priority
                   />
                 </div>
-                {/* Phone tucked in lower-left, overlapping the laptop. Hidden
-                    on the narrowest screens because there's no room for it. */}
-                <div className="pointer-events-none absolute -bottom-6 -left-4 hidden w-[180px] sm:block sm:-left-8 sm:w-[200px] lg:-left-10 lg:-bottom-10 lg:w-[224px]">
+                <div className="pointer-events-none absolute -bottom-8 -left-4 hidden w-[180px] sm:block sm:-left-10 sm:w-[200px] lg:-left-12 lg:-bottom-12 lg:w-[240px]">
                   <PhoneFrame
                     src="/marketing/product-veteran-home.png"
-                    alt="Veteran home screen showing 'Hi, Marcus. About 5 minutes.'"
-                    width={224}
+                    alt="Veteran welcome screen with sign-in button and Veterans Crisis Line link."
+                    width={240}
                     priority
                   />
                 </div>
@@ -366,49 +345,50 @@ export default function Home() {
         </section>
 
         {/* THREE AUDIENCES */}
-        <section id="audiences" className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-6xl px-6 py-24">
-            <p className="text-caption uppercase tracking-wide text-ink-tertiary">Who it's for</p>
-            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
-              Three audiences. Three commitments. Same program.
-            </h2>
-            <p className="mt-3 max-w-3xl text-body text-ink-secondary">
-              The same software shows up differently depending on which side of it you're on. Pick
-              your angle.
-            </p>
+        <section id="audiences" className="border-t border-border/60 bg-canvas-card/30">
+          <div className="container max-w-6xl px-6 py-28">
+            <div className="text-center">
+              <p className="text-caption font-medium uppercase tracking-widest text-ink-tertiary">Who it&apos;s for</p>
+              <h2 className="mx-auto mt-4 max-w-2xl text-balance font-serif text-[32px] font-normal leading-[1.15] tracking-[-0.015em] text-ink-primary sm:text-[42px]">
+                Three audiences. One program.
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-body-lg text-ink-secondary">
+                The same software shows up differently depending on which side of it you&apos;re on.
+              </p>
+            </div>
 
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            <div className="mt-14 grid gap-6 lg:grid-cols-3">
               {AUDIENCES.map((a, i) => (
-                <Reveal key={a.id} delay={i * 0.08}>
+                <Reveal key={a.id} delay={i * 0.1}>
                 <article
                   id={a.id}
-                  className="flex h-full flex-col rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-all hover:-translate-y-1 hover:shadow-warm sm:p-8"
+                  className="group flex h-full flex-col rounded-2xl border border-border/80 bg-canvas-card p-8 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-border-strong hover:shadow-warm"
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-canvas-banded text-ink-secondary ring-1 ring-border">
-                    <a.Icon className="h-4 w-4" aria-hidden />
+                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-canvas-banded text-ink-secondary ring-1 ring-border/50 transition-colors group-hover:bg-canvas-veteran group-hover:text-ink-primary">
+                    <a.Icon className="h-5 w-5" aria-hidden />
                   </span>
-                  <p className="mt-4 text-caption uppercase tracking-wide text-ink-tertiary">{a.eyebrow}</p>
-                  <h3 className="mt-2 font-serif text-[22px] font-normal leading-tight text-ink-primary">{a.title}</h3>
-                  <div className="mt-3 space-y-3 text-body text-ink-secondary">
-                    {a.body.map((p, i) => (
-                      <p key={i}>{p}</p>
+                  <p className="mt-5 text-caption font-medium uppercase tracking-wide text-ink-tertiary">{a.eyebrow}</p>
+                  <h3 className="mt-2 font-serif text-[24px] font-normal leading-tight text-ink-primary">{a.title}</h3>
+                  <div className="mt-4 space-y-3 text-body leading-relaxed text-ink-secondary">
+                    {a.body.map((p, j) => (
+                      <p key={j}>{p}</p>
                     ))}
                   </div>
-                  <ul className="mt-5 space-y-1.5 border-t border-border pt-4 text-body text-ink-primary">
+                  <ul className="mt-6 flex-1 space-y-2 border-t border-border/60 pt-5 text-body text-ink-primary">
                     {a.commitments.map((c) => (
-                      <li key={c} className="flex gap-2">
-                        <span aria-hidden className="text-ink-tertiary">·</span>
+                      <li key={c} className="flex gap-2.5">
+                        <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-tertiary/50" />
                         <span>{c}</span>
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-6">
+                  <div className="mt-6 pt-2">
                     <a
                       href={a.ctaHref}
-                      className="inline-flex items-center gap-1 text-body font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                      className="inline-flex items-center gap-1.5 text-body font-semibold text-ink-primary underline-offset-4 transition-colors hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                     >
                       {a.ctaLabel}
-                      <ArrowRight className="h-4 w-4" aria-hidden />
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
                     </a>
                   </div>
                 </article>
@@ -418,22 +398,23 @@ export default function Home() {
           </div>
         </section>
 
-        {/* PROBLEM */}
-        <section className="border-t border-border">
-          <div className="container max-w-5xl px-6 py-24">
-            <p className="text-caption uppercase tracking-wide text-ink-tertiary">The problem, in numbers</p>
-            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
-              The transition from service is the loneliest point in many veterans' adult lives — and
-              the existing safety net doesn't see most of them coming.
-            </h2>
+        {/* PROBLEM — Stats */}
+        <section className="border-t border-border/60">
+          <div className="container max-w-5xl px-6 py-28">
+            <div className="text-center">
+              <p className="text-caption font-medium uppercase tracking-widest text-ink-tertiary">The problem, in numbers</p>
+              <h2 className="mx-auto mt-4 max-w-3xl text-balance font-serif text-[32px] font-normal leading-[1.15] tracking-[-0.015em] text-ink-primary sm:text-[42px]">
+                The existing safety net doesn&apos;t see most of them coming.
+              </h2>
+            </div>
 
             <Reveal>
-            <dl className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border shadow-soft sm:grid-cols-2">
+            <dl className="mt-14 grid gap-[1px] overflow-hidden rounded-2xl border border-border/80 bg-border/50 shadow-soft sm:grid-cols-2">
               {STATS.map((s) => (
-                <div key={s.figure} className="bg-canvas-card p-8">
-                  <dt className="font-serif text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-ink-primary sm:text-[48px]">
+                <div key={s.figure} className="bg-canvas-card p-8 sm:p-10">
+                  <dt className="stat-number font-serif text-[44px] font-normal leading-[1] tracking-[-0.02em] text-ink-primary sm:text-[52px]">
                     <CountUp value={s.figure} />
-                    <sup className="ml-1 text-caption font-normal text-ink-tertiary">
+                    <sup className="ml-1.5 text-caption font-normal text-ink-tertiary">
                       <a
                         href={`#source-${s.cite}`}
                         className="rounded underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -442,48 +423,47 @@ export default function Home() {
                       </a>
                     </sup>
                   </dt>
-                  <dd className="mt-3 text-body text-ink-secondary">{s.reading}</dd>
+                  <dd className="mt-4 text-body leading-relaxed text-ink-secondary">{s.reading}</dd>
                 </div>
               ))}
             </dl>
             </Reveal>
 
-            <p className="mt-8 max-w-3xl text-body text-ink-secondary">
-              Two of those numbers stack with the third. A large share of veterans who die by
-              suicide haven't been seen by VA mental-health services in the last year, which means
-              the most well-resourced safety net in the country never gets a chance to act. The
-              first year after separation is when the gap between "I'm fine" and "I'm not" is
+            <p className="mx-auto mt-10 max-w-2xl text-center text-body leading-relaxed text-ink-secondary">
+              The first year after separation is when the gap between &quot;I&apos;m fine&quot; and &quot;I&apos;m not&quot; is
               widest — and the shortest distance to a trained human is the most important variable.
             </p>
           </div>
         </section>
 
         {/* APPROACH */}
-        <section id="approach" className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-5xl px-6 py-24">
-            <p className="text-caption uppercase tracking-wide text-ink-tertiary">Our approach</p>
-            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
-              Six gaps in the current model. Six explicit design choices.
-            </h2>
+        <section id="approach" className="border-t border-border/60 bg-canvas-card/30">
+          <div className="container max-w-5xl px-6 py-28">
+            <div className="text-center">
+              <p className="text-caption font-medium uppercase tracking-widest text-ink-tertiary">Our approach</p>
+              <h2 className="mx-auto mt-4 max-w-2xl text-balance font-serif text-[32px] font-normal leading-[1.15] tracking-[-0.015em] text-ink-primary sm:text-[42px]">
+                Six gaps. Six design choices.
+              </h2>
+            </div>
 
-            <div className="mt-10 space-y-4">
+            <div className="mt-14 space-y-5">
               {GAPS.map((g, i) => (
-                <Reveal key={g.title} delay={Math.min(i, 3) * 0.05}>
-                <article className="rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-all hover:-translate-y-px hover:shadow-warm sm:p-8">
-                  <div className="flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-canvas-banded text-ink-secondary ring-1 ring-border">
-                      <g.Icon className="h-4 w-4" aria-hidden />
+                <Reveal key={g.title} delay={Math.min(i, 3) * 0.06}>
+                <article className="group rounded-2xl border border-border/80 bg-canvas-card p-8 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-warm sm:p-10">
+                  <div className="flex items-start gap-4">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-canvas-banded text-ink-secondary ring-1 ring-border/50 transition-colors group-hover:bg-canvas-veteran group-hover:text-ink-primary">
+                      <g.Icon className="h-5 w-5" aria-hidden />
                     </span>
-                    <h3 className="font-serif text-[22px] font-normal leading-tight text-ink-primary">{g.title}</h3>
+                    <h3 className="pt-2 font-serif text-[24px] font-normal leading-tight text-ink-primary">{g.title}</h3>
                   </div>
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2 sm:gap-8">
+                  <div className="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-10">
                     <div>
-                      <p className="text-caption uppercase tracking-wide text-ink-tertiary">The gap</p>
-                      <p className="mt-2 text-body text-ink-secondary">{g.problem}</p>
+                      <p className="text-caption font-medium uppercase tracking-wide text-ink-tertiary">The gap</p>
+                      <p className="mt-3 text-body leading-relaxed text-ink-secondary">{g.problem}</p>
                     </div>
                     <div>
-                      <p className="text-caption uppercase tracking-wide text-ink-tertiary">How we address it</p>
-                      <p className="mt-2 text-body text-ink-primary">
+                      <p className="text-caption font-medium uppercase tracking-wide text-ink-tertiary">How we address it</p>
+                      <p className="mt-3 text-body leading-relaxed text-ink-primary">
                         {g.approach}
                         {g.cite && (
                           <sup className="ml-1 text-caption font-normal text-ink-tertiary">
@@ -506,13 +486,15 @@ export default function Home() {
         </section>
 
         {/* PRINCIPLES */}
-        <section className="border-t border-border">
-          <div className="container max-w-5xl px-6 py-24">
-            <p className="text-caption uppercase tracking-wide text-ink-tertiary">Principles that don't bend</p>
-            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
-              The system is loud about what it won't do.
-            </h2>
-            <div className="mt-10 grid gap-8 sm:grid-cols-3">
+        <section className="border-t border-border/60">
+          <div className="container max-w-5xl px-6 py-28">
+            <div className="text-center">
+              <p className="text-caption font-medium uppercase tracking-widest text-ink-tertiary">Principles that don&apos;t bend</p>
+              <h2 className="mx-auto mt-4 max-w-2xl text-balance font-serif text-[32px] font-normal leading-[1.15] tracking-[-0.015em] text-ink-primary sm:text-[42px]">
+                The system is loud about what it won&apos;t do.
+              </h2>
+            </div>
+            <div className="mt-14 grid gap-10 sm:grid-cols-3">
               <Principle
                 Icon={ShieldCheck}
                 title="AI points. Humans solve."
@@ -533,14 +515,16 @@ export default function Home() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section className="border-t border-border bg-canvas-card/40">
-          <div className="container max-w-5xl px-6 py-24">
-            <p className="text-caption uppercase tracking-wide text-ink-tertiary">How it works in 52 weeks</p>
-            <h2 className="mt-3 max-w-3xl text-balance font-serif text-[28px] font-normal leading-[1.2] tracking-[-0.015em] text-ink-primary sm:text-[40px]">
-              Boring on purpose.
-            </h2>
+        <section className="border-t border-border/60 bg-canvas-card/30">
+          <div className="container max-w-5xl px-6 py-28">
+            <div className="text-center">
+              <p className="text-caption font-medium uppercase tracking-widest text-ink-tertiary">How it works</p>
+              <h2 className="mx-auto mt-4 max-w-xl text-balance font-serif text-[32px] font-normal leading-[1.15] tracking-[-0.015em] text-ink-primary sm:text-[42px]">
+                Boring on purpose.
+              </h2>
+            </div>
 
-            <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <ol className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <Step n={1} title="Sign up once." body="Five minutes. Consent is per-decision, not all-or-nothing. The veteran controls what's shared." />
               <Step n={2} title="Weekly five-minute check-in." body="Six short questions on a calm, distraction-free screen. Skip anything. Stop anytime. Drafts auto-save." />
               <Step n={3} title="The system watches for pattern shifts." body="A risk engine weighs each check-in across nine domains against the veteran's own four-week baseline. Trajectory, not absolute scores." />
@@ -568,8 +552,8 @@ export default function Home() {
                 body="A calm screen, plain language, no scoring shown back. Skip what you want; stop anytime; drafts auto-save."
               >
                 <PhoneFrame
-                  src="/marketing/product-veteran-checkin.png"
-                  alt="Check-in question: 'On most nights this week, about how many hours did you sleep?'"
+src="/marketing/product-veteran-checkin.png"
+                alt="Sign-in screen for veterans showing email authentication with passwordless one-time link."
                   width={260}
                 />
               </ProductCallout>
@@ -793,14 +777,14 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-border">
-        <div className="container flex flex-col items-start justify-between gap-2 px-6 py-6 sm:flex-row sm:items-center">
-          <p className="text-caption text-ink-tertiary">
+      <footer className="relative z-10 border-t border-border/60 bg-canvas-card/30">
+        <div className="container flex flex-col items-center justify-between gap-4 px-6 py-8 text-center sm:flex-row sm:text-left">
+          <p className="text-[14px] text-ink-tertiary">
             © Sentinel. Operated under documented data-processing agreements.
           </p>
-          <p className="text-caption text-ink-tertiary">
+          <p className="text-[14px] text-ink-tertiary">
             In crisis?{" "}
-            <a href="tel:988" className="font-semibold text-crisis hover:underline">
+            <a href="tel:988" className="font-semibold text-crisis transition-colors hover:underline">
               Call 988, press 1
             </a>{" "}
             — Veterans Crisis Line, 24/7.
@@ -808,7 +792,6 @@ export default function Home() {
         </div>
       </footer>
 
-      <MobileBottomDock />
     </div>
   );
 }
@@ -817,11 +800,11 @@ function AudienceChip({ href, label, dot }: { href: string; label: string; dot?:
   return (
     <Link
       href={href}
-      className="group inline-flex items-center gap-2 rounded-full border border-border/60 bg-canvas-card/50 px-3.5 py-1.5 text-caption font-semibold text-ink-secondary backdrop-blur transition-all hover:-translate-y-px hover:border-border-strong hover:bg-canvas-card hover:text-ink-primary hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="group inline-flex items-center gap-2.5 rounded-full border border-border/60 bg-canvas-card/70 px-4 py-2 text-[15px] font-medium text-ink-secondary backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:bg-canvas-card hover:text-ink-primary hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      {dot && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
+      {dot && <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />}
       {label}
-      <ArrowRight className="h-3 w-3 opacity-50 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" aria-hidden />
+      <ArrowRight className="h-3.5 w-3.5 opacity-40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-80" aria-hidden />
     </Link>
   );
 }
@@ -836,29 +819,27 @@ function Principle({
   body: string;
 }) {
   return (
-    <div>
-      <span className="grid h-11 w-11 place-items-center rounded-xl bg-canvas-card text-primary shadow-soft ring-1 ring-border">
-        <Icon className="h-5 w-5" aria-hidden />
+    <div className="group text-center">
+      <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-canvas-card text-ink-secondary shadow-soft ring-1 ring-border/60 transition-all group-hover:ring-border-strong group-hover:shadow-warm">
+        <Icon className="h-6 w-6" aria-hidden />
       </span>
-      <h3 className="mt-4 font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
-      <p className="mt-3 text-body text-ink-secondary">{body}</p>
+      <h3 className="mt-6 font-serif text-[24px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-3 text-body leading-relaxed text-ink-secondary">{body}</p>
     </div>
   );
 }
 
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
-    <li className="flex gap-4">
+    <li className="group flex flex-col items-center text-center">
       <span
         aria-hidden
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-canvas-card font-serif text-body-lg font-normal text-ink-primary shadow-soft ring-1 ring-border"
+        className="grid h-12 w-12 place-items-center rounded-full bg-canvas-card font-serif text-[20px] font-normal text-ink-primary shadow-soft ring-1 ring-border/60 transition-all group-hover:ring-border-strong group-hover:shadow-warm"
       >
         {n}
       </span>
-      <div>
-        <h3 className="font-serif text-[20px] font-normal leading-tight text-ink-primary">{title}</h3>
-        <p className="mt-2 text-body text-ink-secondary">{body}</p>
-      </div>
+      <h3 className="mt-5 font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-3 text-body leading-relaxed text-ink-secondary">{body}</p>
     </li>
   );
 }
@@ -875,11 +856,13 @@ function ProductCallout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center text-center">
-      {children}
-      <p className="mt-6 text-caption uppercase tracking-wide text-ink-tertiary">{eyebrow}</p>
-      <h3 className="mt-2 font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
-      <p className="mt-2 max-w-xs text-body text-ink-secondary">{body}</p>
+    <div className="group flex flex-col items-center text-center">
+      <div className="transition-transform duration-300 group-hover:-translate-y-1">
+        {children}
+      </div>
+      <p className="mt-7 text-caption font-medium uppercase tracking-wide text-ink-tertiary">{eyebrow}</p>
+      <h3 className="mt-2 font-serif text-[24px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-3 max-w-xs text-body leading-relaxed text-ink-secondary">{body}</p>
     </div>
   );
 }
@@ -900,21 +883,21 @@ function CtaCard({
   secondaryHref?: string;
 }) {
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-canvas-card p-7 shadow-soft transition-shadow hover:shadow-warm">
-      <h3 className="font-serif text-[22px] font-normal leading-tight text-ink-primary">{title}</h3>
-      <p className="mt-3 flex-1 text-body text-ink-secondary">{body}</p>
-      <div className="mt-6 flex flex-col gap-2">
+    <div className="group flex flex-col rounded-2xl border border-border/80 bg-canvas-card p-8 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-warm">
+      <h3 className="font-serif text-[24px] font-normal leading-tight text-ink-primary">{title}</h3>
+      <p className="mt-4 flex-1 text-body leading-relaxed text-ink-secondary">{body}</p>
+      <div className="mt-8 flex flex-col gap-3">
         <a
           href={actionHref}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-body font-semibold text-primary-foreground shadow-warm transition-all hover:bg-primary-hover hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-ink-primary px-5 text-body font-semibold text-canvas-card shadow-soft transition-all hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           {actionLabel}
-          <ArrowRight className="h-4 w-4" aria-hidden />
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
         </a>
         {secondaryLabel && secondaryHref && (
           <a
             href={secondaryHref}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-canvas-card px-4 text-caption font-semibold text-ink-secondary transition-all hover:bg-canvas-banded hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-canvas-card px-5 text-body font-medium text-ink-secondary transition-all hover:border-border-strong hover:bg-canvas-banded hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {secondaryLabel}
           </a>
@@ -936,17 +919,17 @@ function Source({
   href: string;
 }) {
   return (
-    <li id={`source-${n}`} className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+    <li id={`source-${n}`} className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
       <span className="font-mono text-caption text-ink-tertiary">[{n}]</span>
-      <div className="text-body text-ink-secondary">
-        <p className="text-ink-primary">{summary}</p>
-        <p className="mt-1 text-caption">
+      <div>
+        <p className="text-body text-ink-primary">{summary}</p>
+        <p className="mt-2 text-caption leading-relaxed text-ink-secondary">
           {citation}{" "}
           <a
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded text-ink-secondary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded text-ink-tertiary underline-offset-2 transition-colors hover:text-ink-secondary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Source ↗
           </a>

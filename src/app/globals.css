@@ -16,57 +16,84 @@
 @layer base {
   :root {
     /* shadcn-aligned semantic tokens */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 10%;
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 210 30% 36%;
-    --accent-foreground: 0 0% 100%;
+    --background: 42 25% 97%;
+    --foreground: 30 10% 8%;
+    --muted: 40 20% 94%;
+    --muted-foreground: 30 8% 45%;
+    --accent: 30 15% 25%;
+    --accent-foreground: 42 25% 97%;
     --destructive: 0 60% 41%;
     --destructive-foreground: 0 0% 100%;
-    --ring: 210 30% 36%;
-    --input: 0 0% 89%;
+    --ring: 30 15% 25%;
+    --input: 40 15% 88%;
+    --card: 42 30% 99%;
+    --card-foreground: 30 10% 8%;
+    --popover: 42 30% 99%;
+    --popover-foreground: 30 10% 8%;
+    --primary: 30 15% 18%;
+    --primary-foreground: 42 25% 97%;
+    --secondary: 40 20% 94%;
+    --secondary-foreground: 30 10% 8%;
+    --border: 35 20% 88%;
+    --radius: 0.75rem;
 
     /* Sentinel surfaces — paper-warm in light, deep amber-tinted in dark.
        Warmth without yellow-cast: ~5% red+green over a neutral base. */
-    --canvas-veteran: #F7F2E8;  /* paper cream */
-    --canvas-staff:   #F6F3EC;  /* slightly cooler paper */
-    --canvas-card:    #FFFDF7;  /* warm white */
-    --canvas-banded:  #EFE9DC;
-    --ink-primary:    #1B1A17;  /* near-black with warm undertone */
-    --ink-secondary:  #4E483F;
-    --ink-tertiary:   #7A7368;
-    --border-color:   #E5DDC8;
-    --border-strong:  #D6CCB3;
+    --canvas-veteran: #FAF8F5;
+    --canvas-staff:   #F8F6F2;
+    --canvas-card:    #FFFFFF;
+    --canvas-banded:  #F3F0EB;
+    --ink-primary:    #1A1918;
+    --ink-secondary:  #52504C;
+    --ink-tertiary:   #8A8680;
+    --border-color:   #E8E4DD;
+    --border-strong:  #D8D3C9;
   }
 
   .dark {
-    --background: 30 7% 9%;
-    --foreground: 36 10% 95%;
-    --muted: 30 6% 14%;
-    --muted-foreground: 32 8% 68%;
-    --accent: 210 30% 60%;
-    --accent-foreground: 0 0% 5%;
+    --background: 30 8% 7%;
+    --foreground: 40 15% 95%;
+    --muted: 30 6% 12%;
+    --muted-foreground: 35 10% 65%;
+    --accent: 35 20% 75%;
+    --accent-foreground: 30 8% 7%;
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
-    --ring: 210 30% 60%;
-    --input: 30 6% 18%;
+    --ring: 35 20% 75%;
+    --input: 30 6% 16%;
+    --card: 30 7% 10%;
+    --card-foreground: 40 15% 95%;
+    --popover: 30 7% 10%;
+    --popover-foreground: 40 15% 95%;
+    --primary: 40 15% 95%;
+    --primary-foreground: 30 8% 7%;
+    --secondary: 30 6% 12%;
+    --secondary-foreground: 40 15% 95%;
+    --border: 30 8% 18%;
 
     /* Warm dark — neutrals tinted slightly toward amber so the page feels
        lit by lamplight, not screen-glow. */
-    --canvas-veteran: #16140F;
-    --canvas-staff:   #13110D;
-    --canvas-card:    #1E1B15;
-    --canvas-banded:  #25211A;
-    --ink-primary:    #F3EFE6;
-    --ink-secondary:  #B5AEA0;
-    --ink-tertiary:   #847C6E;
-    --border-color:   #2E2A22;
-    --border-strong:  #3D382E;
+    --canvas-veteran: #141210;
+    --canvas-staff:   #121110;
+    --canvas-card:    #1C1A17;
+    --canvas-banded:  #232019;
+    --ink-primary:    #F5F2ED;
+    --ink-secondary:  #B8B3AA;
+    --ink-tertiary:   #7D786F;
+    --border-color:   #2A2722;
+    --border-strong:  #3A362E;
   }
 
-  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-  body { @apply bg-background text-foreground font-sans; font-feature-settings: "ss01", "cv11"; }
+  html { 
+    -webkit-font-smoothing: antialiased; 
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  
+  body { 
+    @apply bg-canvas-veteran text-foreground font-sans; 
+    font-feature-settings: "ss01", "cv11"; 
+  }
 
   /* Focus ring — high contrast, visible on every interactive element. */
   *:focus-visible {
@@ -76,7 +103,7 @@
   }
 
   ::selection {
-    background-color: rgba(120, 80, 30, 0.18);
+    background-color: rgba(120, 80, 30, 0.15);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -85,9 +112,6 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
-    /* Force Reveal motion to its final state. Framer Motion's lifecycle
-       runs after hydration, but our SSR HTML has the initial offscreen
-       inline styles baked in — this rule supersedes them. */
     [data-reveal] {
       opacity: 1 !important;
       transform: none !important;
@@ -99,49 +123,47 @@
   .text-balance { text-wrap: balance; }
   .text-pretty  { text-wrap: pretty; }
 
-  /* Paper-warm hero glow — single soft radial. Restrained: opacity 0.5 max.
-     Layered on top of canvas; never replaces it. */
+  /* Refined hero glow — soft, premium feel */
   .hero-warm {
     background-image:
-      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(214, 168, 88, 0.18), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 100% 30%, rgba(168, 136, 92, 0.10), transparent 70%);
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(200, 170, 120, 0.12), transparent 60%),
+      radial-gradient(ellipse 40% 35% at 85% 20%, rgba(180, 150, 100, 0.08), transparent 60%);
   }
   .dark .hero-warm {
     background-image:
-      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(140, 100, 50, 0.22), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 100% 30%, rgba(110, 80, 40, 0.14), transparent 70%);
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(120, 90, 50, 0.18), transparent 60%),
+      radial-gradient(ellipse 40% 35% at 85% 20%, rgba(100, 75, 40, 0.12), transparent 60%);
   }
 
-  /* Hero aurora — three overlapping radials in warm tones. Confined to a
-     680px band at the top of the page. Drives the calm "lit from above"
-     feel without intruding on the rest of the page. */
+  /* Hero aurora — elegant overlapping radials */
   .hero-aurora {
     background-image:
-      radial-gradient(ellipse 50% 60% at 20% 10%, rgba(214, 168, 88, 0.22), transparent 65%),
-      radial-gradient(ellipse 45% 55% at 80% 20%, rgba(166, 132, 84, 0.18), transparent 65%),
-      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(230, 200, 140, 0.16), transparent 70%);
-    mask-image: linear-gradient(180deg, black 50%, transparent 100%);
+      radial-gradient(ellipse 45% 50% at 15% 5%, rgba(200, 170, 120, 0.15), transparent 55%),
+      radial-gradient(ellipse 40% 45% at 85% 15%, rgba(180, 150, 100, 0.12), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(220, 195, 150, 0.10), transparent 60%);
+    mask-image: linear-gradient(180deg, black 40%, transparent 100%);
   }
   .dark .hero-aurora {
     background-image:
-      radial-gradient(ellipse 50% 60% at 20% 10%, rgba(150, 110, 60, 0.30), transparent 65%),
-      radial-gradient(ellipse 45% 55% at 80% 20%, rgba(120, 90, 50, 0.22), transparent 65%),
-      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(170, 130, 70, 0.18), transparent 70%);
+      radial-gradient(ellipse 45% 50% at 15% 5%, rgba(130, 100, 55, 0.22), transparent 55%),
+      radial-gradient(ellipse 40% 45% at 85% 15%, rgba(110, 85, 45, 0.18), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(150, 115, 60, 0.14), transparent 60%);
   }
 
-  /* Hand-feel underline for inline links in body copy. */
+  /* Refined link underline */
   .link-handwritten {
     background-image: linear-gradient(currentColor, currentColor);
     background-size: 100% 1px;
     background-position: 0 100%;
     background-repeat: no-repeat;
     text-decoration: none;
+    transition: background-size 0.2s ease;
   }
   .link-handwritten:hover {
     background-size: 100% 2px;
   }
 
-  /* Subtle pulse — used ONLY on RED risk states. Honors reduced-motion. */
+  /* Subtle pulse — used ONLY on RED risk states. */
   .pulse-red::before {
     content: "";
     position: absolute;
@@ -154,5 +176,27 @@
     0%   { box-shadow: 0 0 0 0 rgba(168, 46, 46, 0.45); }
     70%  { box-shadow: 0 0 0 8px rgba(168, 46, 46, 0); }
     100% { box-shadow: 0 0 0 0 rgba(168, 46, 46, 0); }
+  }
+
+  /* Subtle card hover lift */
+  .card-hover {
+    transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.3s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Gradient text for hero */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--ink-primary) 0%, var(--ink-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Smooth stat number display */
+  .stat-number {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
   }
 }

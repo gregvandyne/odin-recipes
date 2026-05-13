@@ -1,12 +1,10 @@
 "use client";
 
 /**
- * Sticky marketing nav. Top-level layout choice:
+ * Sticky marketing nav — premium, minimal design.
  * - Always sticky at the top so the brand + sign-in are always reachable.
- * - Switches from translucent (over the hero) to a subtle backdrop-blurred
- *   bar with a hairline border once the user has scrolled past ~64px.
- * - Becomes a bottom sticky dock on mobile with the primary CTA always
- *   one tap away.
+ * - Switches from translucent to a subtle backdrop-blurred bar with a hairline
+ *   border once the user has scrolled past ~32px.
  */
 
 import Link from "next/link";
@@ -26,47 +24,49 @@ export function StickyNav() {
   return (
     <header
       className={[
-        "sticky top-0 z-40 transition-all duration-300",
+        "sticky top-0 z-40 transition-all duration-500 ease-out",
         scrolled
-          ? "border-b border-border bg-canvas-veteran/80 backdrop-blur-xl supports-[backdrop-filter]:bg-canvas-veteran/65"
-          : "border-b border-transparent",
+          ? "border-b border-border/60 bg-canvas-veteran/85 backdrop-blur-xl supports-[backdrop-filter]:bg-canvas-veteran/70"
+          : "border-b border-transparent bg-transparent",
       ].join(" ")}
     >
-      <div className="container flex h-14 max-w-6xl items-center justify-between px-6">
+      <div className="container flex h-16 max-w-6xl items-center justify-between px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 rounded text-body font-semibold text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex items-center gap-2.5 rounded text-[17px] font-semibold text-ink-primary transition-colors hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span aria-hidden className="grid h-7 w-7 place-items-center rounded-md bg-ink-primary text-canvas-card">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg bg-ink-primary text-canvas-card shadow-soft">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
             </svg>
           </span>
           Sentinel
         </Link>
-        <nav className="flex items-center gap-1 text-body">
+        <nav className="flex items-center gap-1">
           <Link
             href="#approach"
-            className="hidden rounded px-3 py-2 text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block"
+            className="hidden rounded-lg px-3.5 py-2 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-canvas-card/60 hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block"
           >
             Approach
           </Link>
           <Link
             href="#product"
-            className="hidden rounded px-3 py-2 text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block"
+            className="hidden rounded-lg px-3.5 py-2 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-canvas-card/60 hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block"
           >
             Product
           </Link>
           <Link
             href="#sources"
-            className="hidden rounded px-3 py-2 text-ink-secondary hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block"
+            className="hidden rounded-lg px-3.5 py-2 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-canvas-card/60 hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-block"
           >
             Sources
           </Link>
-          <ThemeToggle />
+          <div className="ml-1">
+            <ThemeToggle />
+          </div>
           <Link
             href="/auth/sign-in"
-            className="inline-flex h-9 items-center gap-1 rounded-lg bg-ink-primary px-4 text-caption font-semibold text-canvas-card shadow-soft transition-all hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="ml-3 inline-flex h-11 min-w-[100px] items-center justify-center gap-1.5 rounded-xl bg-ink-primary px-6 text-[15px] font-semibold text-canvas-card shadow-soft transition-all hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             Sign in
           </Link>
