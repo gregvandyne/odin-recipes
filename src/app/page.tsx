@@ -609,8 +609,8 @@ src="/marketing/product-veteran-checkin.png"
                 </ul>
               </div>
               <LaptopFrame
-                src="/marketing/product-coordinator-queue.png"
-                alt="Coordinator queue with three veterans: one Outreach overdue, two Watch with hours remaining. Real-time updates indicator at the top."
+                src="/marketing/product-coordinator-queue-alt.png"
+                alt="Coordinator queue in dark mode — same three veterans (one Outreach, two Watch), SLA countdowns and Live indicator visible."
                 width={900}
               />
             </div>
