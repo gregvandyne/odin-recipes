@@ -66,7 +66,7 @@ export function StickyNav() {
           </div>
           <Link
             href="/auth/sign-in"
-            className="ml-2 inline-flex h-10 items-center gap-1.5 rounded-xl bg-ink-primary px-5 text-[15px] font-semibold text-canvas-card shadow-soft transition-all hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="ml-3 inline-flex h-11 min-w-[100px] items-center justify-center gap-1.5 rounded-xl bg-ink-primary px-6 text-[15px] font-semibold text-canvas-card shadow-soft transition-all hover:shadow-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             Sign in
           </Link>
